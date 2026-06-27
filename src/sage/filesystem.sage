@@ -10,12 +10,12 @@ class FileSystem:
     proc init(self, env):
         self.env = env
 
+    ## Convert DOS backslashes to forward slashes.
     proc normalize(self, path):
-        """ Convert DOS backslashes to forward slashes. """
         return replace(path, "\\", "/")
 
+    ## Resolve relative path against current working directory.
     proc resolve(self, path):
-        """ Resolve relative path against current working directory. """
         let p = self.normalize(path)
         if startswith(p, "/"):
             return p
@@ -50,18 +50,14 @@ class FileSystem:
     proc remove_dir(self, path):
         raise "RMDIR: Not yet implemented in standalone mode"
 
+    ## Return a list of filenames in directory.
+    ## Stub: returns empty list until os.vfs dir listing is wired in.
     proc list_dir(self, path):
-        """
-        Return a list of filenames in directory.
-        Stub: returns empty list until os.vfs dir listing is wired in.
-        """
         return []
 
+    ## Expand a wildcard pattern like *.TXT against the CWD.
+    ## Stub implementation — returns pattern itself until vfs is wired.
     proc glob(self, pattern):
-        """
-        Expand a wildcard pattern like *.TXT against the CWD.
-        Stub implementation — returns pattern itself until vfs is wired.
-        """
         return [pattern]
 
     proc copy_file(self, src, dst):

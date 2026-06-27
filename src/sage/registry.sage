@@ -21,11 +21,8 @@ class CommandRegistry:
         self.internals["CLS"]    = proc(args): return ic.cmd_cls(args)
         self.internals["EXIT"]   = proc(args): return ic.cmd_exit(args)
         self.internals["CD"]     = proc(args): return ic.cmd_cd(args)
-        self.internals["CHDIR"]  = proc(args): return ic.cmd_cd(args)
         self.internals["MD"]     = proc(args): return ic.cmd_md(args)
-        self.internals["MKDIR"]  = proc(args): return ic.cmd_md(args)
         self.internals["RD"]     = proc(args): return ic.cmd_rd(args)
-        self.internals["RMDIR"]  = proc(args): return ic.cmd_rd(args)
         self.internals["DIR"]    = proc(args): return ic.cmd_dir(args)
         self.internals["TYPE"]   = proc(args): return ic.cmd_type(args)
         self.internals["COPY"]   = proc(args): return ic.cmd_copy(args)
@@ -37,17 +34,19 @@ class CommandRegistry:
         self.internals["SHIFT"]  = proc(args): return ic.cmd_shift(args)
         self.internals["VER"]    = proc(args): return ic.cmd_ver(args)
         self.internals["HELP"]   = proc(args): return ic.cmd_help(args)
-        self.internals["?"]      = proc(args): return ic.cmd_help(args)
 
+    ## Returns true if the command name is a built-in.
     proc is_internal(self, name):
         return dicthas(self.internals, upper(name))
 
-    proc dispatch(self, name, args):
-        """
-        Dispatch to internal handler or raise for external lookup.
-        Returns errorlevel integer.
-        """
-        let uname = upper(name)
-        if dicthas(self.internals, uname):
-            return self.internals[uname](args)
-        raise "Unknown command: " + name
+    ## Dispatch to the appropriate handler.
+    ## Returns the handler proc, or nil if not internal.
+    proc get_handler(self, name):
+        let key = upper(name)
+        if dicthas(self.internals, key):
+            return self.internals[key]
+        return nil
+
+    ## Register a user-defined alias or external command override.
+    proc register(self, name, handler):
+        self.internals[upper(name)] = handler

@@ -30,11 +30,9 @@ class Environment:
     proc del_var(self, name):
         dictdelete(self.vars, upper(name))
 
+    ## Expand %VARIABLE% references in a string.
+    ## Also expands positional %0..%9 via caller context.
     proc expand(self, text):
-        """
-        Expand %VARIABLE% references in a string.
-        Also expands positional %0..%9 via caller context.
-        """
         let result = ""
         let i = 0
         while i < len(text):

@@ -30,8 +30,8 @@ class VarStore:
         # Write to environment (global)
         self.env.set_var(name, value)
 
+    ## Like env.expand but checks scoped vars first.
     proc expand(self, text):
-        """ Like env.expand but checks scoped vars first. """
         let result = ""
         let i = 0
         while i < len(text):
