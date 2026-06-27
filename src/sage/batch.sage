@@ -5,6 +5,7 @@
 # Phases: 0 (repo) ✓  1 (lexer) ✓  2 (parser) ✓  3 (interpreter) ✓
 #         4 (env) ✓   5 (commands) ✓  6 (redirect) ✓  7 (pipes) partial
 
+from token       import Token, TOK_WORD, TOK_STRING, TOK_VARIABLE, TOK_LABEL, TOK_OPERATOR, TOK_REDIRECT, TOK_PIPE, TOK_NEWLINE, TOK_EOF, TOK_AMP, TOK_PAREN_L, TOK_PAREN_R, TOK_AT
 from process     import BatchProcess
 from interpreter import Interpreter
 from lexer       import Lexer
@@ -51,12 +52,16 @@ proc run_script(script_path, batch_args):
 
 # ------------------------------------------------------------------ main
 
-let args = sys.args
+let args = sys.args()
 
-if len(args) < 2:
+let arg_offset = 1
+if len(args) > 1 and (endswith(args[1], ".sage") or endswith(args[1], ".sgvm")):
+    arg_offset = 2
+
+if len(args) <= arg_offset:
     let proc_inst = BatchProcess("INTERACTIVE", [])
     run_interactive(proc_inst)
 else:
-    let script = args[1]
-    let rest   = slice(args, 2, len(args))
+    let script = args[arg_offset]
+    let rest = slice(args, arg_offset + 1, len(args))
     run_script(script, rest)

@@ -23,12 +23,12 @@ class Environment:
         self.vars[upper(name)] = value
 
     proc get_var(self, name):
-        if dicthas(self.vars, upper(name)):
+        if dict_has(self.vars, upper(name)):
             return self.vars[upper(name)]
         return ""
 
     proc del_var(self, name):
-        dictdelete(self.vars, upper(name))
+        dict_delete(self.vars, upper(name))
 
     proc expand(self, text):
         let result = ""

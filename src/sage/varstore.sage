@@ -20,7 +20,7 @@ class VarStore:
     proc get(self, name):
         let i = len(self.scopes) - 1
         while i >= 0:
-            if dicthas(self.scopes[i], upper(name)):
+            if dict_has(self.scopes[i], upper(name)):
                 return self.scopes[i][upper(name)]
             i = i - 1
         return self.env.get_var(name)

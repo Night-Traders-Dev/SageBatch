@@ -38,7 +38,7 @@ class InternalCommands:
     proc cmd_set(self, args):
         if len(args) == 0:
             # Print all variables
-            for k in dictkeys(self.ctx.env.vars):
+            for k in dict_keys(self.ctx.env.vars):
                 print k + "=" + self.ctx.env.vars[k]
             return 0
         return 0   # SET parsing is handled at parser level as Assignment

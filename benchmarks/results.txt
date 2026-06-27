@@ -1,0 +1,12 @@
+=== Interpreter Mode ===
+
+real	0m0.021s
+user	0m0.012s
+sys	0m0.009s
+
+=== SageVM Mode ===
+Could not open file "--run-vm".
+
+real	0m0.006s
+user	0m0.004s
+sys	0m0.002s

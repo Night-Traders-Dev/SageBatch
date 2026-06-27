@@ -3,8 +3,7 @@
 # Implements: GOTO jumps, IF conditionals, FOR loops,
 # CALL nesting, variable expansion, redirection, and pipes.
 
-from ast      import Program, Command, Assignment, IfStatement, ForStatement
-from ast      import LabelNode, GotoNode, CallNode, RedirectNode, PipeNode, BlockNode
+from ast      import Program, Command, Assignment, IfStatement, ForStatement, LabelNode, GotoNode, CallNode, RedirectNode, PipeNode, BlockNode
 from registry import CommandRegistry
 from lexer    import Lexer
 from parser   import Parser
@@ -87,30 +86,21 @@ class Interpreter:
         if node == nil:
             return 0
 
-        # LabelNode — no-op at execution time (handled by label table)
-        let ntype = type(node)
-        try:
-            # Assignment: SET VAR=VALUE
-            let _ = node.name
-            let _ = node.value
+        let ntype = node.type
+
+        if ntype == "LabelNode":
+            return 0
+
+        if ntype == "Assignment":
             self.ctx.vars.set(node.name, self.ctx.vars.expand(node.value))
             self.ctx.env.set_errorlevel(0)
             return 0
-        catch e:
-            nil
 
-        try:
-            # GotoNode
-            let target = node.target
-            raise GotoSignal(upper(target))
-        catch e:
-            if type(e) == "Instance":
-                raise e
+        if ntype == "GotoNode":
+            raise {"__signal": "GOTO", "target": upper(node.target)}
 
-        try:
-            # IfStatement
-            let cond   = node.condition
-            let result = self.eval_condition(cond)
+        if ntype == "IfStatement":
+            let result = self.eval_condition(node.condition)
             if node.negated:
                 result = not result
             if result:
@@ -118,53 +108,30 @@ class Interpreter:
             elif node.alternate != nil:
                 return self.exec_node(node.alternate)
             return 0
-        catch e:
-            if type(e) == "Instance":
-                raise e
 
-        try:
-            # ForStatement
-            let var_name = node.var_name
-            let in_list  = node.in_list
+        if ntype == "ForStatement":
             self.ctx.vars.push_scope()
-            for tok in in_list:
+            for tok in node.in_list:
                 let val = self.ctx.expand_token(tok)
-                self.ctx.vars.set_local(var_name, val)
+                self.ctx.vars.set_local(node.var_name, val)
                 self.exec_node(node.body)
             self.ctx.vars.pop_scope()
             return 0
-        catch e:
-            if type(e) == "Instance":
-                self.ctx.vars.pop_scope()
-                raise e
 
-        try:
-            # CallNode
-            let target = node.target
-            let args   = self.expand_args(node.args)
+        if ntype == "CallNode":
+            let args = self.expand_args(node.args)
             if node.is_subroutine:
-                # CALL :label — jump within same script (push IP, not implemented yet)
-                raise GotoSignal(upper(target))
+                raise {"__signal": "GOTO", "target": upper(node.target)}
             else:
-                # CALL script.bat — nested execution
-                self.run_file(target, args)
+                self.run_file(node.target, args)
             return 0
-        catch e:
-            if type(e) == "Instance":
-                raise e
 
-        try:
-            # BlockNode
-            let stmts = node.statements
-            for s in stmts:
+        if ntype == "BlockNode":
+            for s in node.statements:
                 self.exec_node(s)
             return 0
-        catch e:
-            if type(e) == "Instance":
-                raise e
 
-        try:
-            # RedirectNode
+        if ntype == "RedirectNode":
             let filename = self.ctx.vars.expand(node.filename)
             let old_stdout = self.ctx.stdout
             if node.op == ">":
@@ -175,34 +142,20 @@ class Interpreter:
             self.exec_node(node.inner)
             self.ctx.stdout = old_stdout
             return 0
-        catch e:
-            if type(e) == "Instance":
-                raise e
 
-        try:
-            # PipeNode: capture left output, feed to right as stdin stub
+        if ntype == "PipeNode":
             self.exec_node(node.left)
             self.exec_node(node.right)
             return 0
-        catch e:
-            if type(e) == "Instance":
-                raise e
 
-        # Command node
-        try:
-            let name = node.name
+        if ntype == "Command":
+            print "Command " + str(node.name)
             let args = self.expand_args(node.args)
             if self.ctx.echo_on and not node.suppress:
-                print self.ctx.env.render_prompt() + name + " " + join(args, " ")
-            let code = self.registry.dispatch(name, node.args)
+                print self.ctx.env.render_prompt() + str(node.name) + " " + join(args, " ")
+            let code = self.registry.dispatch(node.name, node.args)
             self.ctx.env.set_errorlevel(code)
             return code
-        catch e:
-            if type(e) == "Instance":
-                raise e
-            print "Bad command or file name: " + str(e)
-            self.ctx.env.set_errorlevel(1)
-            return 1
 
         return 0
 
@@ -217,22 +170,16 @@ class Interpreter:
                 self.exec_node(stmt)
                 ip = ip + 1
             catch e:
-                if type(e) == "Instance":
-                    # GotoSignal
-                    try:
-                        let target = e.target
-                        if dicthas(self.labels, target):
+                if type(e) == "Dict" and dict_has(e, "__signal"):
+                    if e["__signal"] == "GOTO":
+                        let target = e["target"]
+                        if dict_has(self.labels, target):
                             ip = self.labels[target] + 1
                         else:
                             print "GOTO: Label not found: " + target
                             return 1
-                    catch ee:
-                        # ExitSignal or real error
-                        try:
-                            let code = e.code
-                            return code
-                        catch eee:
-                            raise e
+                    elif e["__signal"] == "EXIT":
+                        return e["code"]
                 else:
                     raise e
         return 0

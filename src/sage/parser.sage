@@ -21,6 +21,7 @@ from token import TOK_OPERATOR, TOK_REDIRECT, TOK_PIPE, TOK_NEWLINE
 from token import TOK_EOF, TOK_AMP, TOK_PAREN_L, TOK_PAREN_R, TOK_AT
 from ast import Program, Command, Assignment, IfStatement, ForStatement
 from ast import LabelNode, GotoNode, CallNode, RedirectNode, PipeNode, BlockNode
+import string
 
 class Parser:
     proc init(self, tokens):
@@ -58,16 +59,14 @@ class Parser:
     proc at_end(self):
         return self.peek_kind() == TOK_EOF
 
-    ## Collect remaining value tokens on this logical line.
+    # Collect remaining value tokens on this logical line.
     proc collect_args(self):
         let args = []
-        while self.peek_kind() != TOK_NEWLINE and self.peek_kind() != TOK_EOF
-              and self.peek_kind() != TOK_REDIRECT and self.peek_kind() != TOK_PIPE
-              and self.peek_kind() != TOK_AMP and self.peek_kind() != TOK_PAREN_R:
+        while self.peek_kind() != TOK_NEWLINE and self.peek_kind() != TOK_EOF and self.peek_kind() != TOK_AMP and self.peek_kind() != TOK_PIPE and self.peek_kind() != TOK_REDIRECT and self.peek_kind() != TOK_PAREN_R:
             push(args, self.advance())
         return args
 
-    ## Parse a block: ( statement* )
+    # Parse a block: ( statement* )
     proc parse_block(self):
         let line = self.peek().line
         self.expect(TOK_PAREN_L)
@@ -121,10 +120,7 @@ class Parser:
             return self.parse_for(suppress)
         if kw == "SET":
             return self.parse_set(suppress)
-        if kw == "ECHO" or kw == "PAUSE" or kw == "CLS" or kw == "EXIT"
-           or kw == "CD" or kw == "MD" or kw == "RD" or kw == "DIR"
-           or kw == "TYPE" or kw == "COPY" or kw == "MOVE" or kw == "DEL"
-           or kw == "REN" or kw == "SHIFT" or kw == "VER" or kw == "HELP":
+        if kw == "ECHO" or kw == "PAUSE" or kw == "CLS" or kw == "EXIT" or kw == "CD" or kw == "MD" or kw == "RD" or kw == "DIR" or kw == "TYPE" or kw == "COPY" or kw == "MOVE" or kw == "DEL" or kw == "REN" or kw == "SHIFT" or kw == "VER" or kw == "HELP":
             return self.parse_command(suppress)
 
         return self.parse_command(suppress)
@@ -229,9 +225,19 @@ class Parser:
         # Rejoin tokens to find the = split
         let raw = ""
         for p in parts:
+            if len(raw) > 0:
+                raw = raw + " "
             raw = raw + p.value
-        let eq = find(raw, "=")
-        if eq < 0:
+        
+        let eq = -1
+        let i = 0
+        while i < len(raw):
+            if raw[i] == "=":
+                eq = i
+                break
+            i = i + 1
+            
+        if eq == -1:
             # SET with no = just prints variable
             return Command("SET", parts, suppress, line)
         let vname = slice(raw, 0, eq)
@@ -255,8 +261,8 @@ class Parser:
             return PipeNode(cmd, right, line)
         return cmd
 
-    ## ( statement* ) — block node
-    proc parse_paren_block(self):
+    # ( statement* ) — block node
+    proc parse_block_contents(self):
         return self.parse_block()
 
     # ------------------------------------------------------------------ entry

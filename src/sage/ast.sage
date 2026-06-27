@@ -15,11 +15,13 @@
 
 class Program:
     proc init(self, statements):
+        self.type       = "Program"
         self.statements = statements   # Array of statement nodes
 
 
 class Command:
     proc init(self, name, args, suppress, line):
+        self.type     = "Command"
         self.name     = name
         self.args     = args
         self.suppress = suppress
@@ -28,6 +30,7 @@ class Command:
 
 class Assignment:
     proc init(self, name, value, line):
+        self.type  = "Assignment"
         self.name  = name
         self.value = value
         self.line  = line
@@ -35,6 +38,7 @@ class Assignment:
 
 class IfStatement:
     proc init(self, negated, condition, consequent, alternate, line):
+        self.type       = "IfStatement"
         self.negated    = negated
         self.condition  = condition
         self.consequent = consequent   # Statement or block
@@ -44,6 +48,7 @@ class IfStatement:
 
 class ForStatement:
     proc init(self, var_name, in_list, body, flags, line):
+        self.type     = "ForStatement"
         self.var_name = var_name    # e.g. "A"
         self.in_list  = in_list     # array of tokens / glob patterns
         self.body     = body        # statement
@@ -53,18 +58,21 @@ class ForStatement:
 
 class LabelNode:
     proc init(self, name, line):
+        self.type = "LabelNode"
         self.name = name
         self.line = line
 
 
 class GotoNode:
     proc init(self, target, line):
+        self.type   = "GotoNode"
         self.target = target
         self.line   = line
 
 
 class CallNode:
     proc init(self, target, args, is_subroutine, line):
+        self.type          = "CallNode"
         self.target        = target
         self.args          = args
         self.is_subroutine = is_subroutine
@@ -73,14 +81,16 @@ class CallNode:
 
 class RedirectNode:
     proc init(self, inner, op, filename, line):
-        self.inner    = inner
-        self.op       = op
+        self.type     = "RedirectNode"
+        self.inner    = inner       # The command/node being redirected
+        self.op       = op          # ">", ">>", "<", etc.
         self.filename = filename
         self.line     = line
 
 
 class PipeNode:
     proc init(self, left, right, line):
+        self.type  = "PipeNode"
         self.left  = left
         self.right = right
         self.line  = line
@@ -88,5 +98,6 @@ class PipeNode:
 
 class BlockNode:
     proc init(self, statements, line):
+        self.type       = "BlockNode"
         self.statements = statements
         self.line       = line

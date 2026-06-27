@@ -108,21 +108,43 @@ After the script completes, the `sage` binary is available at `deps/SageLang/sag
 ```bash
 git clone --recurse-submodules https://github.com/Night-Traders-Dev/SageBatch
 cd SageBatch
-cd deps/SageLang && ./sagesync && ./sagemake --make-only
-cd ../SageVM     && ./sagesync && ./sagemake --make-only
+./sagemake clean
+./sagemake build
 ```
+
+`sagemake` is the unified build tool for SageBatch. It will automatically verify dependencies, build the required SageLang compiler incrementally, compile all `.sage` sources, and output a native executable `sagebatch` in the `build/` directory. Use `./sagemake clean` if you want to rebuild the native executable from scratch without using cached objects.
 
 ### Running a script
 
 ```bash
-# Execute a .BAT file
-sage src/sage/batch.sage examples/hello.bat
+# Build the project first
+./sagemake build
+
+# Execute a .BAT file using the native binary
+./build/sagebatch examples/hello.bat
 
 # Interactive REPL
-sage src/sage/batch.sage
+./build/sagebatch
 
 # Pass arguments to a batch script
-sage src/sage/batch.sage myscript.bat arg1 arg2
+./build/sagebatch myscript.bat arg1 arg2
+```
+
+#### Running via Interpreter
+
+If you want to run the script via the SageLang AST tree-walker interpreter directly without compiling:
+
+```bash
+sage src/sage/batch.sage examples/hello.bat
+```
+
+#### Running via SageVM
+
+To compile SageBatch into SageVM bytecode and execute it:
+
+```bash
+sage --sgvm src/sage/batch.sage -o build/sagebatch.sgvm
+sage --run-vm build/sagebatch.sgvm examples/hello.bat
 ```
 
 ---

@@ -4,45 +4,46 @@
 # Phase 5: Internal command dispatch table.
 
 from commands import InternalCommands
+import sys
 
 class CommandRegistry:
     proc init(self, ctx):
         self.ctx       = ctx
-        self.internals = {}
         self.ic        = InternalCommands(ctx)
-        self._register_builtins()
-
-    proc _register_builtins(self):
-        let ic = self.ic
-        self.internals["ECHO"]   = proc(args): return ic.cmd_echo(args)
-        self.internals["REM"]    = proc(args): return ic.cmd_rem(args)
-        self.internals["SET"]    = proc(args): return ic.cmd_set(args)
-        self.internals["PAUSE"]  = proc(args): return ic.cmd_pause(args)
-        self.internals["CLS"]    = proc(args): return ic.cmd_cls(args)
-        self.internals["EXIT"]   = proc(args): return ic.cmd_exit(args)
-        self.internals["CD"]     = proc(args): return ic.cmd_cd(args)
-        self.internals["MD"]     = proc(args): return ic.cmd_md(args)
-        self.internals["RD"]     = proc(args): return ic.cmd_rd(args)
-        self.internals["DIR"]    = proc(args): return ic.cmd_dir(args)
-        self.internals["TYPE"]   = proc(args): return ic.cmd_type(args)
-        self.internals["COPY"]   = proc(args): return ic.cmd_copy(args)
-        self.internals["MOVE"]   = proc(args): return ic.cmd_move(args)
-        self.internals["DEL"]    = proc(args): return ic.cmd_del(args)
-        self.internals["ERASE"]  = proc(args): return ic.cmd_del(args)
-        self.internals["REN"]    = proc(args): return ic.cmd_ren(args)
-        self.internals["RENAME"] = proc(args): return ic.cmd_ren(args)
-        self.internals["SHIFT"]  = proc(args): return ic.cmd_shift(args)
-        self.internals["VER"]    = proc(args): return ic.cmd_ver(args)
-        self.internals["HELP"]   = proc(args): return ic.cmd_help(args)
 
     proc is_internal(self, name):
-        return dicthas(self.internals, upper(name))
-
-    proc get_handler(self, name):
         let key = upper(name)
-        if dicthas(self.internals, key):
-            return self.internals[key]
-        return nil
+        if key == "ECHO" or key == "REM" or key == "SET" or key == "PAUSE" or key == "CLS": return true
+        if key == "EXIT" or key == "CD" or key == "MD" or key == "RD" or key == "DIR": return true
+        if key == "TYPE" or key == "COPY" or key == "MOVE" or key == "DEL" or key == "ERASE": return true
+        if key == "REN" or key == "RENAME" or key == "SHIFT" or key == "VER" or key == "HELP": return true
+        return false
 
-    proc register(self, name, handler):
-        self.internals[upper(name)] = handler
+    proc dispatch(self, name, args):
+        let key = upper(name)
+        if key == "ECHO": return self.ic.cmd_echo(args)
+        if key == "REM": return self.ic.cmd_rem(args)
+        if key == "SET": return self.ic.cmd_set(args)
+        if key == "PAUSE": return self.ic.cmd_pause(args)
+        if key == "CLS": return self.ic.cmd_cls(args)
+        if key == "EXIT": return self.ic.cmd_exit(args)
+        if key == "CD": return self.ic.cmd_cd(args)
+        if key == "MD": return self.ic.cmd_md(args)
+        if key == "RD": return self.ic.cmd_rd(args)
+        if key == "DIR": return self.ic.cmd_dir(args)
+        if key == "TYPE": return self.ic.cmd_type(args)
+        if key == "COPY": return self.ic.cmd_copy(args)
+        if key == "MOVE": return self.ic.cmd_move(args)
+        if key == "DEL": return self.ic.cmd_del(args)
+        if key == "ERASE": return self.ic.cmd_del(args)
+        if key == "REN": return self.ic.cmd_ren(args)
+        if key == "RENAME": return self.ic.cmd_ren(args)
+        if key == "SHIFT": return self.ic.cmd_shift(args)
+        if key == "VER": return self.ic.cmd_ver(args)
+        if key == "HELP": return self.ic.cmd_help(args)
+
+        # External execution
+        let cmd = name
+        if len(args) > 0:
+            cmd = cmd + " " + join(args, " ")
+        return sys.exec(cmd)
