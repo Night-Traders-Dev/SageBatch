@@ -1,0 +1,439 @@
+#!/usr/bin/env python3
+"""
+sagemake — Build system for SageBatch
+
+MS-DOS Batch 4.0 clone written in pure SageLang.
+Compiles all src/sage/*.sage modules into a single native ELF binary via
+the SageLang C backend (sage --compile).
+
+Usage:
+    ./sagemake [command] [flags]
+
+Commands:
+    build      Compile SageBatch to a native ELF (default)
+    check      Lint all .sage source files
+    test       Run the test suite
+    install    Install sagebatch to /usr/local/bin
+    clean      Remove build artifacts
+    all        build → check → test
+
+Flags:
+    --debug        Build with SAGE_DEBUG enabled
+    --skip-tests   Skip the test suite (used by all)
+    --rebuild-sage Force recompilation of the SageLang dep even if binary exists
+"""
+
+import hashlib
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+# ── ANSI helpers ─────────────────────────────────────────────────────────────────────────
+
+RESET  = "\033[0m"
+BOLD   = "\033[1m"
+RED    = "\033[31m"
+GREEN  = "\033[32m"
+YELLOW = "\033[33m"
+CYAN   = "\033[36m"
+
+
+def banner(title: str) -> None:
+    width = 60
+    line = f"{CYAN}{'\u2550' * width}{RESET}"
+    print(f"\n{line}")
+    print(f"{CYAN}  {BOLD}{title}{RESET}")
+    print(f"{line}\n")
+
+
+def section(title: str) -> None:
+    print(f"  {CYAN}\u2192{RESET} {title}")
+
+
+def step(msg: str) -> None:
+    print(f"    {msg} ... ", end="", flush=True)
+
+
+def ok() -> None:
+    print(f"{GREEN}\u2713 done{RESET}")
+
+
+def fail() -> None:
+    print(f"{RED}\u2717 failed{RESET}")
+    sys.exit(1)
+
+
+def step_ok(detail: str) -> None:
+    print(f"{GREEN}\u2713 {detail}{RESET}")
+
+
+def step_fail(detail: str) -> None:
+    print(f"{RED}\u2717 {detail}{RESET}")
+    sys.exit(1)
+
+
+def step_warn(detail: str) -> None:
+    print(f"{YELLOW}! {detail}{RESET}")
+
+
+def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+    """Run a command, exit on failure."""
+    try:
+        return subprocess.run(cmd, check=True, **kwargs)
+    except subprocess.CalledProcessError as e:
+        step_fail(f"command failed (exit {e.returncode}): {' '.join(cmd)}")
+    except FileNotFoundError:
+        step_fail(f"command not found: {cmd[0]}")
+
+
+# ── Configuration ─────────────────────────────────────────────────────────────────────
+
+ROOT         = Path(__file__).resolve().parent
+BUILD_DIR    = ROOT / "build"
+SRC_SAGE     = ROOT / "src" / "sage"
+SRC_C        = ROOT / "src" / "c"
+TEST_DIR     = ROOT / "tests"
+DEPS_DIR     = ROOT / "deps"
+BINARY_NAME  = "sagebatch"
+
+# SageLang binary — prefer system-wide sage, fall back to the submodule build
+SAGE_BIN: Path | None = None
+
+# SAGE_PATH includes src/sage so modules can import each other, plus the
+# SageLang stdlib (resolved once check_dependencies() locates the sage binary).
+SAGE_PATH_EXTRA: list[str] = [str(SRC_SAGE)]
+
+# Modules compiled into the binary, in dependency order.
+# batch.sage is the entrypoint and must be last.
+MODULE_ORDER = [
+    "token.sage",
+    "lexer.sage",
+    "ast.sage",
+    "parser.sage",
+    "environment.sage",
+    "varstore.sage",
+    "filesystem.sage",
+    "commands.sage",
+    "process.sage",
+    "registry.sage",
+    "interpreter.sage",
+    "batch.sage",
+]
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────────────────
+
+def get_source_hash(directory: Path) -> str:
+    """SHA-256 over every file in directory (recursive, deterministic order)."""
+    if not directory.exists():
+        return ""
+    hasher = hashlib.sha256()
+    for filepath in sorted(directory.rglob("*")):
+        if filepath.is_file():
+            hasher.update(filepath.relative_to(directory).as_posix().encode())
+            try:
+                hasher.update(filepath.read_bytes())
+            except Exception:
+                pass
+    return hasher.hexdigest()
+
+
+def sage_env() -> dict:
+    """Build an environment dict with SAGE_PATH set correctly."""
+    env = os.environ.copy()
+    # Locate the stdlib alongside the sage binary
+    lib_path = ""
+    if SAGE_BIN:
+        candidate = SAGE_BIN.parent.parent / "lib"
+        if candidate.exists():
+            lib_path = str(candidate)
+    paths = [p for p in [lib_path] + SAGE_PATH_EXTRA if p]
+    existing = env.get("SAGE_PATH", "")
+    all_paths = ":".join(paths)
+    env["SAGE_PATH"] = f"{all_paths}:{existing}" if existing else all_paths
+    return env
+
+
+# ── Dependency check ──────────────────────────────────────────────────────────────────
+
+def locate_sage(rebuild: bool = False) -> Path:
+    """
+    Find the sage binary. Search order:
+      1. deps/SageLang/core/sage   (submodule build)
+      2. System PATH
+    If not found (or rebuild=True), attempt to build from the submodule.
+    """
+    submodule_sage = DEPS_DIR / "SageLang" / "core" / "sage"
+
+    if not rebuild and submodule_sage.exists():
+        return submodule_sage
+
+    system_sage = shutil.which("sage")
+    if not rebuild and system_sage:
+        return Path(system_sage)
+
+    # Need to build from submodule
+    sagelang_root = DEPS_DIR / "SageLang"
+    if not sagelang_root.exists():
+        step_fail(
+            "deps/SageLang submodule missing — run: "
+            "git submodule update --init --recursive"
+        )
+    step("building SageLang from submodule")
+    sagesync = sagelang_root / "sagesync"
+    sagemake_lang = sagelang_root / "sagemake"
+    if sagesync.exists():
+        run([str(sagesync)], cwd=sagelang_root)
+    if sagemake_lang.exists():
+        run([str(sagemake_lang), "--make-only"], cwd=sagelang_root)
+    else:
+        run(["make", "-C", str(sagelang_root / "core"), "-j", str(os.cpu_count() or 4)])
+    if not submodule_sage.exists():
+        step_fail("SageLang build failed — core/sage not found after build")
+    ok()
+    return submodule_sage
+
+
+def check_dependencies(rebuild_sage: bool = False) -> None:
+    global SAGE_BIN
+    section("Dependencies")
+
+    # gcc (needed by sage --compile C backend)
+    step("checking gcc")
+    if shutil.which("gcc") is None:
+        step_fail("gcc not found — install gcc")
+    ok()
+
+    # sage interpreter / compiler
+    step("locating sage binary")
+    SAGE_BIN = locate_sage(rebuild=rebuild_sage)
+    step_ok(str(SAGE_BIN))
+
+
+# ── Commands ────────────────────────────────────────────────────────────────────────────
+
+def cmd_build(args: list[str]) -> None:
+    banner("build — SageBatch")
+
+    rebuild_sage = "--rebuild-sage" in args
+    debug        = "--debug" in args
+    check_dependencies(rebuild_sage=rebuild_sage)
+
+    section("Incremental check")
+    current_hash = get_source_hash(SRC_SAGE)
+    hash_file    = BUILD_DIR / ".build_hash"
+    if (
+        hash_file.exists()
+        and hash_file.read_text().strip() == current_hash
+        and current_hash != ""
+        and (BUILD_DIR / BINARY_NAME).exists()
+    ):
+        step_ok("source unchanged — skipping recompile")
+        return
+
+    BUILD_DIR.mkdir(parents=True, exist_ok=True)
+    output_bin = BUILD_DIR / BINARY_NAME
+
+    # Verify all expected modules are present
+    section("Source verification")
+    missing = []
+    for mod in MODULE_ORDER:
+        src = SRC_SAGE / mod
+        step(f"checking {mod}")
+        if not src.exists():
+            missing.append(mod)
+            step_fail(f"{mod} not found in {SRC_SAGE}")
+        ok()
+    if missing:
+        step_fail(f"missing modules: {', '.join(missing)}")
+
+    # Compile: sage --compile <entrypoint> -o <binary>
+    # SageLang's C backend compiles batch.sage (which imports all other modules)
+    # into a standalone C translation unit, then calls gcc to link a native ELF.
+    section("Compilation (SageLang C backend → native ELF)")
+    entrypoint = SRC_SAGE / "batch.sage"
+
+    compile_cmd = [
+        str(SAGE_BIN),
+        "--compile",
+        str(entrypoint),
+        "-o", str(output_bin),
+    ]
+
+    if debug:
+        step_warn("debug build — SAGE_DEBUG enabled")
+
+    env = sage_env()
+    if debug:
+        env["CFLAGS_EXTRA"] = env.get("CFLAGS_EXTRA", "") + " -DSAGE_DEBUG"
+
+    step(f"sage --compile {entrypoint.name} -o {output_bin.name}")
+    run(compile_cmd, env=env)
+    ok()
+
+    # Verify the binary was produced and is executable
+    section("Binary verification")
+    step(f"verifying {output_bin.name}")
+    if not output_bin.exists():
+        step_fail(f"compilation succeeded but {output_bin} not found")
+    output_bin.chmod(0o755)
+    step_ok(f"{output_bin} ({output_bin.stat().st_size // 1024} KB)")
+
+    # Save hash for incremental builds
+    hash_file.write_text(current_hash)
+
+    print()
+    print(f"  {GREEN}{BOLD}Build complete.{RESET}")
+    print(f"  Binary : {output_bin}")
+    print(f"  Run    : {output_bin} examples/hello.bat")
+    print(f"  REPL   : {output_bin}")
+    print()
+
+
+def cmd_check(args: list[str]) -> None:
+    banner("check — SageBatch lint")
+    check_dependencies()
+
+    section("Linting src/sage")
+    failed = []
+    for mod in MODULE_ORDER:
+        src = SRC_SAGE / mod
+        if not src.exists():
+            step_warn(f"{mod} not found — skipping")
+            continue
+        step(f"lint {mod}")
+        result = subprocess.run(
+            [str(SAGE_BIN), "lint", str(src)],
+            capture_output=True, text=True, env=sage_env()
+        )
+        stderr = result.stderr
+        if "syntax error" in stderr.lower() or "error" in stderr.lower():
+            failed.append(mod)
+            step_fail(stderr.strip()[:120])
+        ok()
+
+    section("Linting tests")
+    for test_file in sorted(TEST_DIR.glob("*.sage")):
+        step(f"lint {test_file.name}")
+        result = subprocess.run(
+            [str(SAGE_BIN), "lint", str(test_file)],
+            capture_output=True, text=True, env=sage_env()
+        )
+        stderr = result.stderr
+        if "syntax error" in stderr.lower() or "error" in stderr.lower():
+            failed.append(test_file.name)
+            step_fail(stderr.strip()[:120])
+        ok()
+
+    if failed:
+        step_fail(f"lint failed on: {', '.join(failed)}")
+    else:
+        step_ok("all files passed lint")
+
+
+def cmd_test(args: list[str]) -> None:
+    banner("test — SageBatch")
+    check_dependencies()
+
+    suites = [
+        ("Lexer",       TEST_DIR / "test_lexer.sage"),
+        ("Parser",      TEST_DIR / "test_parser.sage"),
+        ("Environment", TEST_DIR / "test_env.sage"),
+        ("Interpreter", TEST_DIR / "test_interpreter.sage"),
+    ]
+
+    failed = []
+    for label, path in suites:
+        section(f"{label} suite")
+        if not path.exists():
+            step_warn(f"{path.name} not found — skipping")
+            continue
+        step(path.name)
+        result = subprocess.run(
+            [str(SAGE_BIN), str(path)],
+            capture_output=True, text=True, env=sage_env()
+        )
+        if result.returncode != 0:
+            failed.append(label)
+            print()
+            print(result.stderr[-800:] if result.stderr else result.stdout[-800:])
+            step_fail(f"{label} suite FAILED")
+        ok()
+
+    if failed:
+        step_fail(f"test suites failed: {', '.join(failed)}")
+    else:
+        step_ok(f"all {len(suites)} suites passed")
+
+
+def cmd_install(args: list[str]) -> None:
+    banner("install — SageBatch")
+    binary = BUILD_DIR / BINARY_NAME
+    if not binary.exists():
+        step_fail(f"{BINARY_NAME} not built — run: ./sagemake build")
+
+    install_dir = Path("/usr/local/bin")
+    target = install_dir / BINARY_NAME
+    section(f"Installing to {target}")
+    step(f"copying {BINARY_NAME}")
+    try:
+        shutil.copy2(binary, target)
+        target.chmod(0o755)
+    except PermissionError:
+        step_fail("permission denied — try: sudo ./sagemake install")
+    except Exception as e:
+        step_fail(f"install failed: {e}")
+    step_ok(str(target))
+
+
+def cmd_clean(args: list[str]) -> None:
+    banner("clean — SageBatch")
+    section("Removing build artifacts")
+    step(f"removing {BUILD_DIR}")
+    if BUILD_DIR.exists():
+        shutil.rmtree(BUILD_DIR)
+    ok()
+    step_ok("clean complete")
+
+
+def cmd_all(args: list[str]) -> None:
+    skip_tests = "--skip-tests" in args
+    cmd_build(args)
+    cmd_check(args)
+    if not skip_tests:
+        cmd_test(args)
+
+
+# ── CLI dispatch ─────────────────────────────────────────────────────────────────────────
+
+commands: dict[str, callable] = {
+    "build":   cmd_build,
+    "check":   cmd_check,
+    "test":    cmd_test,
+    "install": cmd_install,
+    "clean":   cmd_clean,
+    "all":     cmd_all,
+}
+
+
+def main() -> None:
+    if len(sys.argv) < 2 or sys.argv[1] not in commands:
+        banner("SageBatch — sagemake")
+        print(f"  Usage:  ./sagemake {'|'.join(commands.keys())} [flags]")
+        print()
+        print("  Flags:")
+        print("    --debug          Build with SAGE_DEBUG")
+        print("    --skip-tests     Skip test suite (used with 'all')")
+        print("    --rebuild-sage   Force rebuild of SageLang dep")
+        print()
+        sys.exit(0 if len(sys.argv) < 2 else 1)
+
+    cmd  = sys.argv[1]
+    args = sys.argv[2:]
+    commands[cmd](args)
+
+
+if __name__ == "__main__":
+    main()
