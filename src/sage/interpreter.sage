@@ -34,12 +34,8 @@ class Interpreter:
         self.stmts = program.statements
         let i = 0
         for stmt in self.stmts:
-            if type(stmt) == "Instance" and stmt.name != nil:
-                # Check if it's a LabelNode by duck-typing
-                try:
-                    self.labels[upper(stmt.name)] = i
-                catch e:
-                    nil  # not a label node
+            if stmt.type == "LabelNode":
+                self.labels[upper(stmt.name)] = i
             i = i + 1
 
     # ------------------------------------------------------------------ condition evaluation
@@ -52,7 +48,7 @@ class Interpreter:
         if ctype == "ERRORLEVEL":
             let n = tonumber(cond["value"])
             return self.ctx.env.get_errorlevel() >= n
-        if ctype == "COMPARE":
+        if ctype == "CMP":
             let left  = self.ctx.vars.expand(cond["left"])
             let right = self.ctx.vars.expand(cond["right"])
             let op    = upper(cond["op"])
@@ -92,12 +88,45 @@ class Interpreter:
             return 0
 
         if ntype == "Assignment":
-            self.ctx.vars.set(node.name, self.ctx.vars.expand(node.value))
+            let name = node.name
+            let is_arith = false
+            if startswith(name, "/A "):
+                name = strip(slice(name, 3, len(name)))
+                is_arith = true
+            
+            let val = self.ctx.vars.expand(node.value)
+            if is_arith:
+                # Basic parsing for X+Y
+                let plus = -1
+                let i = 0
+                while i < len(val):
+                    if val[i] == "+":
+                        plus = i
+                        break
+                    i = i + 1
+                if plus != -1:
+                    let left = strip(slice(val, 0, plus))
+                    let right = strip(slice(val, plus + 1, len(val)))
+                    
+                    let left_val = self.ctx.vars.get(left)
+                    if left_val != "" and left_val != nil: left = left_val
+                    let right_val = self.ctx.vars.get(right)
+                    if right_val != "" and right_val != nil: right = right_val
+                    
+                    let left_num = tonumber(left)
+                    let right_num = tonumber(right)
+                    val = str(left_num + right_num)
+                else:
+                    let val_var = self.ctx.vars.get(val)
+                    if val_var != "" and val_var != nil: val = val_var
+                    val = str(tonumber(val))
+
+            self.ctx.vars.set(name, val)
             self.ctx.env.set_errorlevel(0)
             return 0
 
         if ntype == "GotoNode":
-            raise {"__signal": "GOTO", "target": upper(node.target)}
+            return {"__signal": "GOTO", "target": upper(node.target)}
 
         if ntype == "IfStatement":
             let result = self.eval_condition(node.condition)
@@ -111,25 +140,30 @@ class Interpreter:
 
         if ntype == "ForStatement":
             self.ctx.vars.push_scope()
+            let ret = 0
             for tok in node.in_list:
                 let val = self.ctx.expand_token(tok)
                 self.ctx.vars.set_local(node.var_name, val)
-                self.exec_node(node.body)
+                ret = self.exec_node(node.body)
+                if type(ret) == "dict" and dict_has(ret, "__signal"):
+                    break
             self.ctx.vars.pop_scope()
-            return 0
+            return ret
 
         if ntype == "CallNode":
             let args = self.expand_args(node.args)
             if node.is_subroutine:
-                raise {"__signal": "GOTO", "target": upper(node.target)}
+                return {"__signal": "GOTO", "target": upper(node.target)}
             else:
-                self.run_file(node.target, args)
-            return 0
+                return self.run_file(node.target, args)
 
         if ntype == "BlockNode":
+            let ret = 0
             for s in node.statements:
-                self.exec_node(s)
-            return 0
+                ret = self.exec_node(s)
+                if type(ret) == "dict" and dict_has(ret, "__signal"):
+                    return ret
+            return ret
 
         if ntype == "RedirectNode":
             let filename = self.ctx.vars.expand(node.filename)
@@ -139,21 +173,22 @@ class Interpreter:
                 self.ctx.stdout = filename
             elif node.op == ">>":
                 self.ctx.stdout = filename
-            self.exec_node(node.inner)
+            let ret = self.exec_node(node.inner)
             self.ctx.stdout = old_stdout
-            return 0
+            return ret
 
         if ntype == "PipeNode":
-            self.exec_node(node.left)
-            self.exec_node(node.right)
-            return 0
+            let ret1 = self.exec_node(node.left)
+            if type(ret1) == "dict" and dict_has(ret1, "__signal"): return ret1
+            return self.exec_node(node.right)
 
         if ntype == "Command":
-            print "Command " + str(node.name)
             let args = self.expand_args(node.args)
             if self.ctx.echo_on and not node.suppress:
                 print self.ctx.env.render_prompt() + str(node.name) + " " + join(args, " ")
             let code = self.registry.dispatch(node.name, node.args)
+            if type(code) == "dict" and dict_has(code, "__signal"):
+                return code
             self.ctx.env.set_errorlevel(code)
             return code
 
@@ -166,22 +201,20 @@ class Interpreter:
         let ip = 0
         while ip < len(self.stmts):
             let stmt = self.stmts[ip]
-            try:
-                self.exec_node(stmt)
-                ip = ip + 1
-            catch e:
-                if type(e) == "Dict" and dict_has(e, "__signal"):
-                    if e["__signal"] == "GOTO":
-                        let target = e["target"]
-                        if dict_has(self.labels, target):
-                            ip = self.labels[target] + 1
-                        else:
-                            print "GOTO: Label not found: " + target
-                            return 1
-                    elif e["__signal"] == "EXIT":
-                        return e["code"]
-                else:
-                    raise e
+            let ret = self.exec_node(stmt)
+            if type(ret) == "dict" and dict_has(ret, "__signal"):
+                if ret["__signal"] == "GOTO":
+                    let target = ret["target"]
+                    if dict_has(self.labels, target):
+                        ip = self.labels[target] + 1
+                        continue
+                    else:
+                        print "GOTO: Label not found: " + target
+                        return 1
+                elif ret["__signal"] == "EXIT":
+                    return ret["code"]
+            
+            ip = ip + 1
         return 0
 
     # ------------------------------------------------------------------ run a .BAT file

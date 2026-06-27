@@ -17,20 +17,26 @@ class Lexer:
 
     # ------------------------------------------------------------------ helpers
 
+    proc get_char(self, index):
+        let ch = self.source[index]
+        if type(ch) == "number":
+            return chr(ch)
+        return ch
+
     proc peek(self):
         if self.pos < len(self.source):
-            return self.source[self.pos]
+            return self.get_char(self.pos)
         return nil
 
     proc advance(self):
-        let ch = self.source[self.pos]
+        let ch = self.get_char(self.pos)
         self.pos = self.pos + 1
         if ch == "\n":
             self.line = self.line + 1
         return ch
 
     proc match_char(self, expected):
-        if self.pos < len(self.source) and self.source[self.pos] == expected:
+        if self.pos < len(self.source) and self.get_char(self.pos) == expected:
             self.pos = self.pos + 1
             return true
         return false
@@ -38,7 +44,7 @@ class Lexer:
     proc skip_whitespace_inline(self):
         # Skip spaces and tabs but NOT newlines
         while self.pos < len(self.source):
-            let ch = self.source[self.pos]
+            let ch = self.get_char(self.pos)
             if ch == " " or ch == "\t":
                 self.pos = self.pos + 1
             else:
@@ -76,7 +82,7 @@ class Lexer:
         let buf = first_char
         let specials = ">< |&()\"\n\r\t%!"
         while self.pos < len(self.source):
-            let ch = self.source[self.pos]
+            let ch = self.get_char(self.pos)
             if contains(specials, ch):
                 break
             buf = buf + self.advance()
@@ -90,7 +96,7 @@ class Lexer:
 
     proc scan_comment(self):
         # REM line — skip everything to newline
-        while self.pos < len(self.source) and self.source[self.pos] != "\n":
+        while self.pos < len(self.source) and self.get_char(self.pos) != "\n":
             self.pos = self.pos + 1
 
     # ------------------------------------------------------------------ main loop
@@ -120,7 +126,7 @@ class Lexer:
                     self.scan_comment()
                 else:
                     let buf = ""
-                    while self.pos < len(self.source) and self.source[self.pos] != "\n" and self.source[self.pos] != " ":
+                    while self.pos < len(self.source) and self.get_char(self.pos) != "\n" and self.get_char(self.pos) != " ":
                         buf = buf + self.advance()
                     self.emit(TOK_LABEL, upper(buf))
                 continue

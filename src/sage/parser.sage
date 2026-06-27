@@ -225,9 +225,14 @@ class Parser:
         # Rejoin tokens to find the = split
         let raw = ""
         for p in parts:
-            if len(raw) > 0:
+            let v = p.value
+            if p.kind == "VARIABLE":
+                v = "%" + v + "%"
+            elif p.kind == "STRING":
+                v = "\"" + v + "\""
+            if len(raw) > 0 and not endswith(raw, "="):
                 raw = raw + " "
-            raw = raw + p.value
+            raw = raw + v
         
         let eq = -1
         let i = 0

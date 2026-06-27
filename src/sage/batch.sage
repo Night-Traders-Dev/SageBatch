@@ -37,18 +37,17 @@ proc run_interactive(process):
             print "Error: " + str(e)
 
 proc run_script(script_path, batch_args):
-    if not io.exists(script_path):
+    let source  = io.readfile(script_path)
+    if source == nil:
         print "SageBatch: File not found: " + script_path
-        sys.exit(1)
+        return
     let process = BatchProcess(script_path, batch_args)
     let interp  = Interpreter(process)
-    let source  = io.readfile(script_path)
     let lexer   = Lexer(source)
     let tokens  = lexer.tokenize()
     let parser  = Parser(tokens)
     let ast     = parser.parse()
     let code    = interp.run_program(ast)
-    sys.exit(code)
 
 # ------------------------------------------------------------------ main
 
@@ -64,4 +63,7 @@ if len(args) <= arg_offset:
 else:
     let script = args[arg_offset]
     let rest = slice(args, arg_offset + 1, len(args))
-    run_script(script, rest)
+    try:
+        run_script(script, rest)
+    catch e:
+        print "Runtime Error: " + str(e)

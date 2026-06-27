@@ -29,6 +29,6 @@ class CommandContext:
 
     proc write_out(self, text):
         if self.stdout != nil:
-            io.appendfile(self.stdout, text + "\n")
+            self.fs.append_file(self.stdout, text + "\n")
         else:
             print text

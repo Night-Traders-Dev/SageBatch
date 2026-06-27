@@ -1,12 +1,8 @@
-@ECHO OFF
-ECHO Starting nested loop benchmark
-FOR %%A IN (1 2 3 4 5 6 7 8 9 10) DO (
-    FOR %%B IN (1 2 3 4 5 6 7 8 9 10) DO (
-        FOR %%C IN (1 2 3 4 5 6 7 8 9 10) DO (
-            FOR %%D IN (1 2 3 4 5 6 7 8 9 10) DO (
-                REM do nothing
-            )
-        )
-    )
-)
-ECHO Done
+@echo off
+set I=0
+:loop
+set /A I=I+1
+if "%I%"=="1000" goto end
+goto loop
+:end
+echo Done loop

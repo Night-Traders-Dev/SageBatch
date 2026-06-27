@@ -20,13 +20,15 @@ class FileSystem:
         return self.env.cwd + "/" + p
 
     proc exists(self, path):
-        return io.exists(self.resolve(path))
+        let res = self.resolve(path)
+        let content = io.readfile(res)
+        return content != nil
 
     proc is_dir(self, path):
-        return io.isdir(self.resolve(path))
+        return false # Directory checks unreliable in AOT via readfile, defaulting to false
 
     proc is_file(self, path):
-        return io.isfile(self.resolve(path))
+        return self.exists(path)
 
     proc read_file(self, path):
         return io.readfile(self.resolve(path))
@@ -35,10 +37,15 @@ class FileSystem:
         io.writefile(self.resolve(path), content)
 
     proc append_file(self, path, content):
-        io.appendfile(self.resolve(path), content)
+        let res = self.resolve(path)
+        let existing = io.readfile(res)
+        if existing == nil:
+            existing = ""
+        io.writefile(res, existing + content)
 
     proc delete_file(self, path):
-        io.remove(self.resolve(path))
+        # AOT workaround: truncate file instead of deleting
+        io.writefile(self.resolve(path), "")
 
     proc make_dir(self, path):
         raise "MKDIR: Not yet implemented in standalone mode"

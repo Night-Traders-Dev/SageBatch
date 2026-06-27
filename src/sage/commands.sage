@@ -63,8 +63,7 @@ class InternalCommands:
         let code = 0
         if len(args) > 0:
             code = tonumber(self.ctx.expand_token(args[0]))
-        sys.exit(code)
-        return 0
+        return {"__signal": "EXIT", "code": code}
 
     # ------------------------------------------------------------------ CD / CHDIR
 

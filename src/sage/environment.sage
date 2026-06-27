@@ -7,28 +7,49 @@ import io
 
 class Environment:
     proc init(self):
-        self.vars        = {}    # string → string
+        let d = {}
+        self.vars        = d    # string → string
         self.errorlevel  = 0
         self.cwd         = "/"  # current working directory
         self._init_defaults()
 
     proc _init_defaults(self):
-        self.vars["PATH"]    = sys.getenv("PATH")
-        self.vars["TEMP"]    = sys.getenv("TEMP")
-        self.vars["COMSPEC"] = "BATCH.SAGE"
-        self.vars["PROMPT"]  = "$P$G"
-        self.vars["PATHEXT"] = ".BAT;.SAG;.EXE;.COM"
+        let p1 = sys.getenv("PATH")
+        let k_path = "PATH"
+        self.vars[k_path] = p1
+        
+        let p2 = sys.getenv("TEMP")
+        let k_temp = "TEMP"
+        self.vars[k_temp] = p2
+        
+        let v1 = "BATCH.SAGE"
+        let k_comspec = "COMSPEC"
+        self.vars[k_comspec] = v1
+        
+        let v2 = "$P$G"
+        let k_prompt = "PROMPT"
+        self.vars[k_prompt] = v2
+        
+        let v3 = ".BAT;.SAG;.EXE;.COM"
+        let k_pathext = "PATHEXT"
+        self.vars[k_pathext] = v3
 
     proc set_var(self, name, value):
-        self.vars[upper(name)] = value
+        let uname = upper(name)
+        let v = self.vars
+        v[uname] = value
 
     proc get_var(self, name):
-        if dict_has(self.vars, upper(name)):
-            return self.vars[upper(name)]
+        let uname = upper(name)
+        let v = self.vars
+        if dict_has(v, uname):
+            return v[uname]
         return ""
 
     proc del_var(self, name):
-        dict_delete(self.vars, upper(name))
+        let uname = upper(name)
+        let v = self.vars
+        dict_delete(v, uname)
 
     proc expand(self, text):
         let result = ""

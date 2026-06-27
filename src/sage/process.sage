@@ -12,14 +12,25 @@ from context import CommandContext
 class BatchProcess:
     proc init(self, script_path, batch_args):
         self.script_path = script_path
-        self.env         = Environment()
-        self.varstore    = VarStore(self.env)
-        self.fs          = FileSystem(self.env)
-        self.call_stack  = []      # stack of (script, args, ip) tuples
-        self.env.set_var("0", script_path)
+        
+        let e = Environment()
+        self.env = e
+        
+        let v = VarStore(e)
+        self.varstore = v
+        
+        let f = FileSystem(e)
+        self.fs = f
+        
+        let arr = []
+        self.call_stack  = arr      # stack of (script, args, ip) tuples
+        
+        let env_ref = self.env
+        env_ref.set_var("0", script_path)
         let i = 1
         for arg in batch_args:
-            self.env.set_var(str(i), arg)
+            let k = str(i)
+            env_ref.set_var(k, arg)
             i = i + 1
         self.batch_args = batch_args
 
