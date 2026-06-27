@@ -19,10 +19,6 @@ class Program:
 
 
 class Command:
-    ## A generic command invocation: ECHO, DIR, DEL, etc.
-    ## name     — the command word (uppercased)
-    ## args     — array of strings / variable refs
-    ## suppress — true if prefixed with @
     proc init(self, name, args, suppress, line):
         self.name     = name
         self.args     = args
@@ -31,7 +27,6 @@ class Command:
 
 
 class Assignment:
-    ## SET VAR=VALUE
     proc init(self, name, value, line):
         self.name  = name
         self.value = value
@@ -39,8 +34,6 @@ class Assignment:
 
 
 class IfStatement:
-    ## IF [NOT] condition consequent [ELSE alternate]
-    ## condition — a dict: {type, left, op, right}
     proc init(self, negated, condition, consequent, alternate, line):
         self.negated    = negated
         self.condition  = condition
@@ -50,8 +43,6 @@ class IfStatement:
 
 
 class ForStatement:
-    ## FOR %A IN (list) DO command
-    ## FOR /F ...
     proc init(self, var_name, in_list, body, flags, line):
         self.var_name = var_name    # e.g. "A"
         self.in_list  = in_list     # array of tokens / glob patterns
@@ -73,8 +64,6 @@ class GotoNode:
 
 
 class CallNode:
-    ## CALL script.bat [args]
-    ## Also handles CALL :subroutine
     proc init(self, target, args, is_subroutine, line):
         self.target        = target
         self.args          = args
@@ -83,8 +72,6 @@ class CallNode:
 
 
 class RedirectNode:
-    ## Wraps a command with stdout/stdin/append redirection.
-    ## op is one of: ">", ">>", "<", "2>"
     proc init(self, inner, op, filename, line):
         self.inner    = inner
         self.op       = op
@@ -93,7 +80,6 @@ class RedirectNode:
 
 
 class PipeNode:
-    ## cmd1 | cmd2
     proc init(self, left, right, line):
         self.left  = left
         self.right = right
@@ -101,7 +87,6 @@ class PipeNode:
 
 
 class BlockNode:
-    ## Parenthesised block of statements for IF/FOR bodies.
     proc init(self, statements, line):
         self.statements = statements
         self.line       = line

@@ -35,18 +35,14 @@ class CommandRegistry:
         self.internals["VER"]    = proc(args): return ic.cmd_ver(args)
         self.internals["HELP"]   = proc(args): return ic.cmd_help(args)
 
-    ## Returns true if the command name is a built-in.
     proc is_internal(self, name):
         return dicthas(self.internals, upper(name))
 
-    ## Dispatch to the appropriate handler.
-    ## Returns the handler proc, or nil if not internal.
     proc get_handler(self, name):
         let key = upper(name)
         if dicthas(self.internals, key):
             return self.internals[key]
         return nil
 
-    ## Register a user-defined alias or external command override.
     proc register(self, name, handler):
         self.internals[upper(name)] = handler

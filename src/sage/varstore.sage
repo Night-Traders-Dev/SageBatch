@@ -18,7 +18,6 @@ class VarStore:
         self.scopes[len(self.scopes) - 1][upper(name)] = value
 
     proc get(self, name):
-        # Search scopes innermost-first
         let i = len(self.scopes) - 1
         while i >= 0:
             if dicthas(self.scopes[i], upper(name)):
@@ -27,10 +26,8 @@ class VarStore:
         return self.env.get_var(name)
 
     proc set(self, name, value):
-        # Write to environment (global)
         self.env.set_var(name, value)
 
-    ## Like env.expand but checks scoped vars first.
     proc expand(self, text):
         let result = ""
         let i = 0

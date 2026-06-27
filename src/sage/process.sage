@@ -11,8 +11,6 @@ import sys
 import io
 
 class CommandContext:
-    ## Per-invocation context: holds environment, varstore, filesystem,
-    ## positional args, echo state, and I/O streams.
     proc init(self, env, varstore, fs, batch_args):
         self.env        = env
         self.vars       = varstore
@@ -22,7 +20,6 @@ class CommandContext:
         self.stdout     = nil           # nil = real stdout
         self.stderr     = nil
 
-    ## Expand a token to its string value, resolving variables.
     proc expand_token(self, tok):
         if tok.kind == TOK_VARIABLE:
             return self.vars.get(tok.value)
@@ -30,7 +27,6 @@ class CommandContext:
             return self.vars.expand(tok.value)
         return str(tok.value)
 
-    ## Implement SHIFT: drop %0 and slide %1..%9 down.
     proc shift_args(self):
         if len(self.args) > 0:
             self.args = slice(self.args, 1, len(self.args))
@@ -48,15 +44,12 @@ class CommandContext:
 
 
 class BatchProcess:
-    ## Top-level process manager. Creates the execution stack for
-    ## nested CALL invocations and manages the return stack.
     proc init(self, script_path, batch_args):
         self.script_path = script_path
         self.env         = Environment()
         self.varstore    = VarStore(self.env)
         self.fs          = FileSystem(self.env)
         self.call_stack  = []      # stack of (script, args, ip) tuples
-        # Inject positional args into env
         self.env.set_var("0", script_path)
         let i = 1
         for arg in batch_args:

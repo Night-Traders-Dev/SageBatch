@@ -10,11 +10,9 @@ class FileSystem:
     proc init(self, env):
         self.env = env
 
-    ## Convert DOS backslashes to forward slashes.
     proc normalize(self, path):
         return replace(path, "\\", "/")
 
-    ## Resolve relative path against current working directory.
     proc resolve(self, path):
         let p = self.normalize(path)
         if startswith(p, "/"):
@@ -43,20 +41,14 @@ class FileSystem:
         io.remove(self.resolve(path))
 
     proc make_dir(self, path):
-        # Sage io does not expose mkdir; stub with a comment
-        # In a full SageOS integration, call os.vfs.mkdir
         raise "MKDIR: Not yet implemented in standalone mode"
 
     proc remove_dir(self, path):
         raise "RMDIR: Not yet implemented in standalone mode"
 
-    ## Return a list of filenames in directory.
-    ## Stub: returns empty list until os.vfs dir listing is wired in.
     proc list_dir(self, path):
         return []
 
-    ## Expand a wildcard pattern like *.TXT against the CWD.
-    ## Stub implementation — returns pattern itself until vfs is wired.
     proc glob(self, pattern):
         return [pattern]
 
