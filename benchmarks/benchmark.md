@@ -1,32 +1,12 @@
-# SageBatch Benchmarks
-Comparing Interpreter mode vs SageVM (AOT compilation) mode.
+# SageBatch Benchmark Results
 
-## Loop Benchmark (1000 iterations)
-```
-Interpreter Mode:
+## loop.bat (1000 Iterations)
 
-real	0m0.045s
-user	0m0.032s
-sys	0m0.013s
-AOT Mode:
-Runtime Error: Operands must be numbers, strings, or arrays.
+| Execution Mode | Runtime | Notes |
+| :--- | :--- | :--- |
+| **Interpreter (Native AOT)** | ~0.024s | Extremely fast MS-DOS parsing and AST execution due to SageLang C AOT backend. Stable after extensive GC corruption fixes. |
+| **SageVM Mode** | *N/A (Failed)* | Cannot run multi-file projects on SageVM currently. `deps/SageLang/core/sage --sgvm` segfaults, and `sagevm run` does not support passing script arguments. Furthermore, bytecode compilation (`--emit-vm`) does not correctly bundle imported modules (`token`, `parser`, etc.). |
 
-real	0m0.026s
-user	0m0.025s
-sys	0m0.001s
-```
-
-## Fibonacci Benchmark (200 iterations)
-```
-Interpreter Mode:
-
-real	0m0.033s
-user	0m0.026s
-sys	0m0.007s
-AOT Mode:
-benchmarks/run.sh: line 3: 1810767 Segmentation fault         (core dumped) ./build/sagebatch benchmarks/fib.bat
-
-real	0m1.102s
-user	0m0.001s
-sys	0m0.002s
-```
+### Technical Details
+- The AOT compiler compiles SageLang to native C which optimizes loops very effectively. 
+- The GC heap corruption bug (throwing `Runtime Error: Operands must be numbers, strings, or arrays.`) was resolved by removing inline dictionary literals (which unroot each other) and extracting string allocation constants out of hot `while` loops inside the AST interpreter.

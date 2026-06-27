@@ -5,37 +5,55 @@
 class VarStore:
     proc init(self, env):
         self.env    = env       # base Environment
-        self.scopes = [{}]      # stack of dicts; scopes[0] is innermost
+        let d = {}
+        let arr = [d]
+        self.scopes = arr       # stack of dicts; scopes[0] is innermost
 
     proc push_scope(self):
-        push(self.scopes, {})
+        let arr = self.scopes
+        let d = {}
+        push(arr, d)
 
     proc pop_scope(self):
-        if len(self.scopes) > 1:
-            pop(self.scopes)
+        let arr = self.scopes
+        if len(arr) > 1:
+            pop(arr)
 
     proc set_local(self, name, value):
-        self.scopes[len(self.scopes) - 1][upper(name)] = value
+        let arr = self.scopes
+        let idx = len(arr) - 1
+        let d = arr[idx]
+        let uname = upper(name)
+        d[uname] = value
 
     proc get(self, name):
-        let i = len(self.scopes) - 1
+        let arr = self.scopes
+        let i = len(arr) - 1
+        let uname = upper(name)
         while i >= 0:
-            if dict_has(self.scopes[i], upper(name)):
-                return self.scopes[i][upper(name)]
+            let d = arr[i]
+            if dict_has(d, uname):
+                return d[uname]
             i = i - 1
-        return self.env.get_var(name)
+        let e = self.env
+        return e.get_var(name)
 
     proc set(self, name, value):
-        self.env.set_var(name, value)
+        let e = self.env
+        e.set_var(name, value)
 
     proc expand(self, text):
         let result = ""
         let i = 0
+        let pct = "%"
         while i < len(text):
             let ch = text[i]
-            if ch == "%":
+            if ch == pct:
                 let j = i + 1
-                while j < len(text) and text[j] != "%":
+                while j < len(text):
+                    let ch2 = text[j]
+                    if ch2 == pct:
+                        break
                     j = j + 1
                 if j < len(text):
                     let vname = slice(text, i + 1, j)

@@ -74,7 +74,9 @@ class Environment:
 
     proc set_errorlevel(self, level):
         self.errorlevel = level
-        self.vars["ERRORLEVEL"] = str(level)
+        let s = str(level)
+        let v = self.vars
+        v["ERRORLEVEL"] = s
 
     proc get_errorlevel(self):
         return self.errorlevel
@@ -82,16 +84,18 @@ class Environment:
     proc chdir(self, path):
         if io.isdir(path):
             self.cwd = path
-            self.vars["CD"] = path
+            let v = self.vars
+            v["CD"] = path
         else:
             raise "CD: Directory not found: " + path
 
     proc render_prompt(self):
         let p = self.get_var("PROMPT")
-        let p = replace(p, "$P", self.cwd)
-        let p = replace(p, "$G", ">")
-        let p = replace(p, "$L", "<")
-        let p = replace(p, "$N", "C")
-        let p = replace(p, "$Q", "=")
-        let p = replace(p, "$$", "$")
+        let c = self.cwd
+        p = replace(p, "$P", c)
+        p = replace(p, "$G", ">")
+        p = replace(p, "$L", "<")
+        p = replace(p, "$N", "C")
+        p = replace(p, "$Q", "=")
+        p = replace(p, "$$", "$")
         return p

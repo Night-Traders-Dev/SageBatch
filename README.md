@@ -147,9 +147,29 @@ sage --sgvm src/sage/batch.sage -o build/sagebatch.sgvm
 sage --run-vm build/sagebatch.sgvm examples/hello.bat
 ```
 
----
+#### Build Process
 
-## Architecture Overview
+SageBatch is written entirely in SageLang and requires the SageLang compiler to build into a native standalone binary. 
+
+We provide `sagemake`, a lightweight build script that orchestrates the compilation process natively.
+
+To build SageBatch:
+```bash
+./sagemake build
+```
+This will verify all dependencies, perform incremental parsing, and compile the AST into a standalone binary at `build/sagebatch`.
+
+To clean the build directory:
+```bash
+./sagemake clean
+```
+
+To run SageBatch directly from source (interpreter mode):
+```bash
+./sagemake run examples/hello.bat
+```
+
+## Internal Architecture
 
 SageBatch is structured around five concerns, each mapped to a small set of Sage modules:
 

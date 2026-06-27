@@ -38,7 +38,11 @@ class BatchProcess:
         return CommandContext(self.env, self.varstore, self.fs, args)
 
     proc push_call(self, script, args, ip):
-        push(self.call_stack, {"script": script, "args": args, "ip": ip})
+        let frame = {}
+        frame["script"] = script
+        frame["args"] = args
+        frame["ip"] = ip
+        push(self.call_stack, frame)
 
     proc pop_call(self):
         if len(self.call_stack) > 0:

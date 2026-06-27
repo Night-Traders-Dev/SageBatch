@@ -1,0 +1,1 @@
+sed -i 's/fprintf(stderr, "Runtime Error: Operands must be numbers, strings, or arrays.\\n");/fprintf(stderr, "Runtime Error: Operands must be numbers, strings, or arrays. left=%d right=%d\\n", left.type, right.type);/' deps/SageLang/core/sage_env.c

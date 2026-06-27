@@ -179,23 +179,37 @@ class Parser:
         if kw == "EXIST":
             self.advance()
             let path = self.advance()
-            return {"type": "EXIST", "path": path.value}
+            let node = {}
+            node["type"] = "EXIST"
+            node["path"] = path.value
+            return node
 
         if kw == "DEFINED":
             self.advance()
             let vname = self.advance()
-            return {"type": "DEFINED", "name": vname.value}
+            let node = {}
+            node["type"] = "DEFINED"
+            node["name"] = vname.value
+            return node
 
         if kw == "ERRORLEVEL":
             self.advance()
             let level = self.advance()
-            return {"type": "ERRORLEVEL", "level": level.value}
+            let node = {}
+            node["type"] = "ERRORLEVEL"
+            node["level"] = level.value
+            return node
 
         # String comparison: left op right
         let left = self.advance()
         let op   = self.advance()   # == EQU NEQ LSS GTR LEQ GEQ
         let right = self.advance()
-        return {"type": "CMP", "left": left.value, "op": op.value, "right": right.value}
+        let node = {}
+        node["type"] = "CMP"
+        node["left"] = left.value
+        node["op"] = op.value
+        node["right"] = right.value
+        return node
 
     proc parse_for(self, suppress):
         let line = self.advance().line  # consume FOR

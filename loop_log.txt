@@ -1,0 +1,8 @@
+Runtime Error: out of memory
+DEBUG: left='0' right='1'
+DEBUG: left='1' right='1'
+DEBUG: left='2' right='1'
+DEBUG: left='3' right='1'
+DEBUG: left='4' right='1'
+DEBUG: left='5' right='1'
+DEBUG: left='6' right='1'

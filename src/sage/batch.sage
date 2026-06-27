@@ -57,7 +57,14 @@ let arg_offset = 1
 if len(args) > 1 and (endswith(args[1], ".sage") or endswith(args[1], ".sgvm")):
     arg_offset = 2
 
-if len(args) <= arg_offset:
+let env_script = sys.getenv("SAGEBATCH_SCRIPT")
+if env_script != nil and env_script != "":
+    let rest = slice(args, arg_offset, len(args))
+    try:
+        run_script(env_script, rest)
+    catch e:
+        print "Runtime Error: " + str(e)
+elif len(args) <= arg_offset:
     let proc_inst = BatchProcess("INTERACTIVE", [])
     run_interactive(proc_inst)
 else:

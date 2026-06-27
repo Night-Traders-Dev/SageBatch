@@ -35,7 +35,10 @@ class Interpreter:
         let i = 0
         for stmt in self.stmts:
             if stmt.type == "LabelNode":
-                self.labels[upper(stmt.name)] = i
+                let lname = stmt.name
+                let uname = upper(lname)
+                let ldict = self.labels
+                ldict[uname] = i
             i = i + 1
 
     # ------------------------------------------------------------------ condition evaluation
@@ -43,14 +46,19 @@ class Interpreter:
     proc eval_condition(self, cond):
         let ctype = cond["type"]
         if ctype == "EXIST":
-            let path = self.ctx.vars.expand(cond["value"])
-            return self.ctx.fs.exists(path)
+            let c = self.ctx
+            let v = c.vars
+            let path = v.expand(cond["value"])
+            let fs = c.fs
+            return fs.exists(path)
         if ctype == "ERRORLEVEL":
             let n = tonumber(cond["value"])
             return self.ctx.env.get_errorlevel() >= n
         if ctype == "CMP":
-            let left  = self.ctx.vars.expand(cond["left"])
-            let right = self.ctx.vars.expand(cond["right"])
+            let c = self.ctx
+            let v = c.vars
+            let left  = v.expand(cond["left"])
+            let right = v.expand(cond["right"])
             let op    = upper(cond["op"])
             if op == "==":
                 return left == right
@@ -94,13 +102,18 @@ class Interpreter:
                 name = strip(slice(name, 3, len(name)))
                 is_arith = true
             
-            let val = self.ctx.vars.expand(node.value)
+            let c = self.ctx
+            let v = c.vars
+            let val = v.expand(node.value)
+            
             if is_arith:
                 # Basic parsing for X+Y
                 let plus = -1
                 let i = 0
+                let plus_str = "+"
                 while i < len(val):
-                    if val[i] == "+":
+                    let ch = val[i]
+                    if ch == plus_str:
                         plus = i
                         break
                     i = i + 1
@@ -108,25 +121,34 @@ class Interpreter:
                     let left = strip(slice(val, 0, plus))
                     let right = strip(slice(val, plus + 1, len(val)))
                     
-                    let left_val = self.ctx.vars.get(left)
+                    let left_val = v.get(left)
                     if left_val != "" and left_val != nil: left = left_val
-                    let right_val = self.ctx.vars.get(right)
+                    let right_val = v.get(right)
                     if right_val != "" and right_val != nil: right = right_val
                     
                     let left_num = tonumber(left)
                     let right_num = tonumber(right)
-                    val = str(left_num + right_num)
+                    if left_num == nil or right_num == nil:
+                        print "CRASH_BUG: left='" + str(left) + "' right='" + str(right) + "'"
+                        val = "0"
+                    else:
+                        val = str(left_num + right_num)
                 else:
-                    let val_var = self.ctx.vars.get(val)
+                    let val_var = v.get(val)
                     if val_var != "" and val_var != nil: val = val_var
                     val = str(tonumber(val))
 
-            self.ctx.vars.set(name, val)
-            self.ctx.env.set_errorlevel(0)
+            v.set(name, val)
+            let env = c.env
+            env.set_errorlevel(0)
             return 0
 
         if ntype == "GotoNode":
-            return {"__signal": "GOTO", "target": upper(node.target)}
+            let target = upper(node.target)
+            let sig = {}
+            sig["__signal"] = "GOTO"
+            sig["target"] = target
+            return sig
 
         if ntype == "IfStatement":
             let result = self.eval_condition(node.condition)
@@ -139,21 +161,27 @@ class Interpreter:
             return 0
 
         if ntype == "ForStatement":
-            self.ctx.vars.push_scope()
+            let c = self.ctx
+            let v = c.vars
+            v.push_scope()
             let ret = 0
             for tok in node.in_list:
-                let val = self.ctx.expand_token(tok)
-                self.ctx.vars.set_local(node.var_name, val)
+                let val = c.expand_token(tok)
+                v.set_local(node.var_name, val)
                 ret = self.exec_node(node.body)
                 if type(ret) == "dict" and dict_has(ret, "__signal"):
                     break
-            self.ctx.vars.pop_scope()
+            v.pop_scope()
             return ret
 
         if ntype == "CallNode":
             let args = self.expand_args(node.args)
             if node.is_subroutine:
-                return {"__signal": "GOTO", "target": upper(node.target)}
+                let target = upper(node.target)
+                let sig = {}
+                sig["__signal"] = "GOTO"
+                sig["target"] = target
+                return sig
             else:
                 return self.run_file(node.target, args)
 
@@ -166,15 +194,17 @@ class Interpreter:
             return ret
 
         if ntype == "RedirectNode":
-            let filename = self.ctx.vars.expand(node.filename)
-            let old_stdout = self.ctx.stdout
+            let c = self.ctx
+            let v = c.vars
+            let filename = v.expand(node.filename)
+            let old_stdout = c.stdout
             if node.op == ">":
                 io.writefile(filename, "")
-                self.ctx.stdout = filename
+                c.stdout = filename
             elif node.op == ">>":
-                self.ctx.stdout = filename
+                c.stdout = filename
             let ret = self.exec_node(node.inner)
-            self.ctx.stdout = old_stdout
+            c.stdout = old_stdout
             return ret
 
         if ntype == "PipeNode":
@@ -184,12 +214,21 @@ class Interpreter:
 
         if ntype == "Command":
             let args = self.expand_args(node.args)
-            if self.ctx.echo_on and not node.suppress:
-                print self.ctx.env.render_prompt() + str(node.name) + " " + join(args, " ")
+            let c = self.ctx
+            if c.echo_on and not node.suppress:
+                let env = c.env
+                let p = env.render_prompt()
+                let s1 = str(node.name)
+                let s2 = join(args, " ")
+                let s3 = p + s1
+                let s4 = s3 + " "
+                let s5 = s4 + s2
+                print s5
             let code = self.registry.dispatch(node.name, node.args)
             if type(code) == "dict" and dict_has(code, "__signal"):
                 return code
-            self.ctx.env.set_errorlevel(code)
+            let env2 = c.env
+            env2.set_errorlevel(code)
             return code
 
         return 0
