@@ -13,7 +13,9 @@ cd deps/SageLang
 ./sagemake --make-only
 
 cd ../SageVM
-./sagesync
-./sagemake --make-only
+git submodule update --init
+rm -rf .deps SageLang
+cp -R ../SageLang .deps/SageLang
+./sagemake build
 
 echo "SageLang and SageVM built successfully."
