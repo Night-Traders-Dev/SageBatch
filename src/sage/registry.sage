@@ -17,6 +17,7 @@ class CommandRegistry:
         if key == "EXIT" or key == "CD" or key == "MD" or key == "RD" or key == "DIR": return true
         if key == "TYPE" or key == "COPY" or key == "MOVE" or key == "DEL" or key == "ERASE": return true
         if key == "REN" or key == "RENAME" or key == "SHIFT" or key == "VER" or key == "HELP": return true
+        if key == "TITLE" or key == "COLOR" or key == "PROMPT": return true
         return false
 
     proc dispatch(self, name, args):
@@ -41,6 +42,9 @@ class CommandRegistry:
         if key == "SHIFT": return self.ic.cmd_shift(args)
         if key == "VER": return self.ic.cmd_ver(args)
         if key == "HELP": return self.ic.cmd_help(args)
+        if key == "TITLE": return self.ic.cmd_title(args)
+        if key == "COLOR": return self.ic.cmd_color(args)
+        if key == "PROMPT": return self.ic.cmd_prompt(args)
 
         # External execution
         let cmd = name

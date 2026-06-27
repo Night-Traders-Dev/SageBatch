@@ -212,10 +212,59 @@ class InternalCommands:
         print "MS-DOS Batch 4.0 (SageBatch v1.0.0)"
         return 0
 
+    # ------------------------------------------------------------------ TITLE
+
+    proc cmd_title(self, args):
+        if len(args) == 0:
+            return 0
+        let title = ""
+        for arg in args:
+            let val = self.ctx.expand_token(arg)
+            if len(title) > 0:
+                title = title + " "
+            title = title + val
+        print "\033]0;" + title + "\007"
+        return 0
+
+    # ------------------------------------------------------------------ COLOR
+
+    proc cmd_color(self, args):
+        if len(args) == 0:
+            # Reset
+            print "\033[0m"
+            return 0
+        let code = upper(self.ctx.expand_token(args[0]))
+        if len(code) == 2:
+            # bg = first, fg = second
+            # Map DOS hex to ANSI is complex, just do a basic reset for now
+            # since full DOS color translation is large. We'll support 0A-like.
+            if code == "0A":
+                print "\033[0;32m"
+            elif code == "0C":
+                print "\033[0;31m"
+            else:
+                print "\033[0m"
+        return 0
+
+    # ------------------------------------------------------------------ PROMPT
+
+    proc cmd_prompt(self, args):
+        if len(args) == 0:
+            self.ctx.env.vars["PROMPT"] = "$P$G"
+            return 0
+        let new_prompt = ""
+        for arg in args:
+            let val = self.ctx.expand_token(arg)
+            if len(new_prompt) > 0:
+                new_prompt = new_prompt + " "
+            new_prompt = new_prompt + val
+        self.ctx.env.vars["PROMPT"] = new_prompt
+        return 0
+
     # ------------------------------------------------------------------ HELP
 
     proc cmd_help(self, args):
         print "SageBatch internal commands:"
         print "  ECHO SET REM PAUSE CLS EXIT CD MD RD DIR TYPE COPY MOVE DEL REN SHIFT VER"
-        print "  IF FOR GOTO CALL"
+        print "  IF FOR GOTO CALL TITLE COLOR PROMPT"
         return 0
