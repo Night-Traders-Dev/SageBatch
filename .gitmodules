@@ -1,0 +1,7 @@
+[submodule "deps/SageLang"]
+    path = deps/SageLang
+    url = https://github.com/Night-Traders-Dev/SageLang
+
+[submodule "deps/SageVM"]
+    path = deps/SageVM
+    url = https://github.com/Night-Traders-Dev/SageVM
