@@ -11,6 +11,8 @@ class Environment:
         self.vars        = d    # string → string
         self.errorlevel  = 0
         self.cwd         = "/"  # current working directory
+        let arr = []
+        self.dir_stack   = arr
         self._init_defaults()
 
     proc _init_defaults(self):

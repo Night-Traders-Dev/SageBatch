@@ -18,6 +18,8 @@ class CommandRegistry:
         if key == "TYPE" or key == "COPY" or key == "MOVE" or key == "DEL" or key == "ERASE": return true
         if key == "REN" or key == "RENAME" or key == "SHIFT" or key == "VER" or key == "HELP": return true
         if key == "TITLE" or key == "COLOR" or key == "PROMPT": return true
+        if key == "DATE" or key == "TIME" or key == "VOL" or key == "VERIFY": return true
+        if key == "PUSHD" or key == "POPD": return true
         return false
 
     proc dispatch(self, name, args):
@@ -45,6 +47,12 @@ class CommandRegistry:
         if key == "TITLE": return self.ic.cmd_title(args)
         if key == "COLOR": return self.ic.cmd_color(args)
         if key == "PROMPT": return self.ic.cmd_prompt(args)
+        if key == "DATE": return self.ic.cmd_date(args)
+        if key == "TIME": return self.ic.cmd_time(args)
+        if key == "VOL": return self.ic.cmd_vol(args)
+        if key == "VERIFY": return self.ic.cmd_verify(args)
+        if key == "PUSHD": return self.ic.cmd_pushd(args)
+        if key == "POPD": return self.ic.cmd_popd(args)
 
         # External execution
         let cmd = name

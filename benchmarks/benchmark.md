@@ -4,7 +4,7 @@
 
 | Execution Mode | Runtime | Notes |
 | :--- | :--- | :--- |
-| **Interpreter (Native AOT)** | ~0.024s | Extremely fast MS-DOS parsing and AST execution due to SageLang C AOT backend. Stable after extensive GC corruption fixes. |
+| **Interpreter (Native AOT)** | ~0.021s | Extremely fast MS-DOS parsing and AST execution due to SageLang C AOT backend. Stable after extensive GC corruption fixes. |
 | **SageVM Mode** | *N/A (Failed)* | Cannot run multi-file projects on SageVM currently. `deps/SageLang/core/sage --sgvm` segfaults, and `sagevm run` does not support passing script arguments. Furthermore, bytecode compilation (`--emit-vm`) does not correctly bundle imported modules (`token`, `parser`, etc.). |
 
 ### Technical Details

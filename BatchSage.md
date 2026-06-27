@@ -171,6 +171,15 @@ Required V1:
 - REN
 - TYPE
 - DIR
+- TITLE
+- COLOR
+- PROMPT
+- DATE
+- TIME
+- VOL
+- VERIFY
+- PUSHD
+- POPD
 
 ---
 

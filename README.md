@@ -355,6 +355,15 @@ Top-level entrypoint. When invoked with a filename argument it reads the file, r
 | `REN` | `REN old new` | Rename file |
 | `SHIFT` | `SHIFT [/n]` | Shift argument registers |
 | `VER` | `VER` | Display version string |
+| `TITLE` | `TITLE string` | Sets the window title |
+| `COLOR` | `COLOR attr` | Sets console foreground and background color |
+| `PROMPT` | `PROMPT [text]` | Changes the command prompt |
+| `DATE` | `DATE` | Displays the current date |
+| `TIME` | `TIME` | Displays the current time |
+| `VOL` | `VOL` | Displays disk volume label |
+| `VERIFY` | `VERIFY [ON\|OFF]` | Tells DOS whether to verify files |
+| `PUSHD` | `PUSHD path` | Saves current directory and changes to path |
+| `POPD` | `POPD` | Restores previous directory |
 | `HELP` | `HELP [command]` | Show command help |
 
 Control-flow keywords (`IF`, `FOR`, `GOTO`, `CALL`) are handled directly by the parser and interpreter rather than the command registry.
@@ -487,6 +496,19 @@ sage tests/test_parser.sage
 sage tests/test_env.sage
 sage tests/test_interpreter.sage
 ```
+
+---
+
+## Benchmarks
+
+SageBatch includes a benchmarking suite to test the performance of the Native AOT compiled interpreter versus the VM runtime. 
+
+To run the loop benchmark (`benchmarks/loop.bat` for 1000 iterations):
+```bash
+time ./build/sagebatch benchmarks/loop.bat
+```
+**Current Results (Interpreter Native AOT):** `~0.021s` (Extremely fast MS-DOS parsing and AST execution).
+Detailed breakdown is available in `benchmarks/benchmark.md`.
 
 ---
 

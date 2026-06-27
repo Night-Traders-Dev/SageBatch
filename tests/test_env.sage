@@ -22,4 +22,10 @@ t.assert_eq(result, "Hello Jacob!", "variable expansion")
 env.set_errorlevel(3)
 t.assert_eq(env.get_errorlevel(), 3, "errorlevel set/get")
 
+# Test dir_stack (PUSHD/POPD foundation)
+t.assert_eq(len(env.dir_stack), 0, "initial dir_stack empty")
+push(env.dir_stack, "/foo")
+t.assert_eq(len(env.dir_stack), 1, "dir_stack push")
+t.assert_eq(pop(env.dir_stack), "/foo", "dir_stack pop")
+
 print "environment tests passed."

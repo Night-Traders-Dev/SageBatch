@@ -261,10 +261,60 @@ class InternalCommands:
         self.ctx.env.vars["PROMPT"] = new_prompt
         return 0
 
+    # ------------------------------------------------------------------ DATE / TIME / VOL / VERIFY
+
+    proc cmd_date(self, args):
+        print "The current date is: Sat 06/27/2026"
+        return 0
+
+    proc cmd_time(self, args):
+        print "The current time is: 12:00:00.00"
+        return 0
+
+    proc cmd_vol(self, args):
+        print " Volume in drive C is SAGEBATCH"
+        print " Volume Serial Number is 1234-ABCD"
+        return 0
+
+    proc cmd_verify(self, args):
+        if len(args) > 0:
+            let st = upper(self.ctx.expand_token(args[0]))
+            if st == "ON" or st == "OFF":
+                return 0
+        print "VERIFY is off."
+        return 0
+
+    # ------------------------------------------------------------------ PUSHD / POPD
+
+    proc cmd_pushd(self, args):
+        if len(args) == 0:
+            print "PUSHD: Missing path"
+            return 1
+        let path = self.ctx.expand_token(args[0])
+        try:
+            push(self.ctx.env.dir_stack, self.ctx.env.cwd)
+            self.ctx.env.chdir(path)
+            return 0
+        catch e:
+            pop(self.ctx.env.dir_stack)
+            print "PUSHD: " + e
+            return 1
+
+    proc cmd_popd(self, args):
+        if len(self.ctx.env.dir_stack) == 0:
+            return 1
+        let path = pop(self.ctx.env.dir_stack)
+        try:
+            self.ctx.env.chdir(path)
+            return 0
+        catch e:
+            print "POPD: " + e
+            return 1
+
     # ------------------------------------------------------------------ HELP
 
     proc cmd_help(self, args):
         print "SageBatch internal commands:"
         print "  ECHO SET REM PAUSE CLS EXIT CD MD RD DIR TYPE COPY MOVE DEL REN SHIFT VER"
-        print "  IF FOR GOTO CALL TITLE COLOR PROMPT"
+        print "  IF FOR GOTO CALL TITLE COLOR PROMPT DATE TIME VOL VERIFY PUSHD POPD"
         return 0
