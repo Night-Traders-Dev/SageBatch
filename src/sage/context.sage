@@ -21,6 +21,15 @@ class CommandContext:
     proc shift_args(self):
         if len(self.args) > 0:
             self.args = slice(self.args, 1, len(self.args))
+            
+            # Update env.vars %1 through %9
+            let i = 1
+            while i < 10:
+                if i - 1 < len(self.args):
+                    self.env.set_var(str(i), self.args[i - 1])
+                else:
+                    self.env.set_var(str(i), "")
+                i = i + 1
 
     proc get_arg(self, n):
         if n < len(self.args):

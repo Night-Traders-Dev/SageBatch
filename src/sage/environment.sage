@@ -53,26 +53,7 @@ class Environment:
         let v = self.vars
         dict_delete(v, uname)
 
-    proc expand(self, text):
-        let result = ""
-        let i = 0
-        while i < len(text):
-            let ch = text[i]
-            if ch == "%":
-                let j = i + 1
-                while j < len(text) and text[j] != "%":
-                    j = j + 1
-                if j < len(text):
-                    let vname = slice(text, i + 1, j)
-                    result = result + self.get_var(vname)
-                    i = j + 1
-                else:
-                    result = result + ch
-                    i = i + 1
-            else:
-                result = result + ch
-                i = i + 1
-        return result
+
 
     proc set_errorlevel(self, level):
         self.errorlevel = level

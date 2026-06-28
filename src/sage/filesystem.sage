@@ -20,12 +20,10 @@ class FileSystem:
         return self.env.cwd + "/" + p
 
     proc exists(self, path):
-        let res = self.resolve(path)
-        let content = io.readfile(res)
-        return content != nil
+        return io.exists(self.resolve(path))
 
     proc is_dir(self, path):
-        return false # Directory checks unreliable in AOT via readfile, defaulting to false
+        return io.isdir(self.resolve(path))
 
     proc is_file(self, path):
         return self.exists(path)
@@ -54,7 +52,8 @@ class FileSystem:
         raise "RMDIR: Not yet implemented in standalone mode"
 
     proc list_dir(self, path):
-        return []
+        let res = self.resolve(path)
+        return io.listdir(res)
 
     proc glob(self, pattern):
         return [pattern]

@@ -48,9 +48,14 @@ class Interpreter:
         if ctype == "EXIST":
             let c = self.ctx
             let v = c.vars
-            let path = v.expand(cond["value"])
+            let path = v.expand(cond["path"])
             let fs = c.fs
             return fs.exists(path)
+        if ctype == "DEFINED":
+            let c = self.ctx
+            let v = c.vars
+            let val = v.get(cond["name"])
+            return val != "" and val != nil
         if ctype == "ERRORLEVEL":
             let n = tonumber(cond["value"])
             return self.ctx.env.get_errorlevel() >= n
@@ -107,19 +112,19 @@ class Interpreter:
             let val = v.expand(node.value)
             
             if is_arith:
-                # Basic parsing for X+Y
-                let plus = -1
+                let op_idx = -1
                 let i = 0
-                let plus_str = "+"
+                let op_char = ""
                 while i < len(val):
                     let ch = val[i]
-                    if ch == plus_str:
-                        plus = i
+                    if ch == "+" or ch == "-" or ch == "*" or ch == "/":
+                        op_idx = i
+                        op_char = ch
                         break
                     i = i + 1
-                if plus != -1:
-                    let left = strip(slice(val, 0, plus))
-                    let right = strip(slice(val, plus + 1, len(val)))
+                if op_idx != -1:
+                    let left = strip(slice(val, 0, op_idx))
+                    let right = strip(slice(val, op_idx + 1, len(val)))
                     
                     let left_val = v.get(left)
                     if left_val != "" and left_val != nil: left = left_val
@@ -132,7 +137,12 @@ class Interpreter:
                         print "CRASH_BUG: left='" + str(left) + "' right='" + str(right) + "'"
                         val = "0"
                     else:
-                        val = str(left_num + right_num)
+                        if op_char == "+": val = str(left_num + right_num)
+                        if op_char == "-": val = str(left_num - right_num)
+                        if op_char == "*": val = str(left_num * right_num)
+                        if op_char == "/": 
+                            if right_num == 0: val = "0"
+                            else: val = str(left_num / right_num)
                 else:
                     let val_var = v.get(val)
                     if val_var != "" and val_var != nil: val = val_var
@@ -179,8 +189,9 @@ class Interpreter:
             if node.is_subroutine:
                 let target = upper(node.target)
                 let sig = {}
-                sig["__signal"] = "GOTO"
+                sig["__signal"] = "CALL"
                 sig["target"] = target
+                sig["args"] = args
                 return sig
             else:
                 return self.run_file(node.target, args)
@@ -224,7 +235,7 @@ class Interpreter:
                 let s4 = s3 + " "
                 let s5 = s4 + s2
                 print s5
-            let code = self.registry.dispatch(node.name, node.args)
+            let code = self.registry.dispatch(node.name, args)
             if type(code) == "dict" and dict_has(code, "__signal"):
                 return code
             let env2 = c.env
@@ -238,17 +249,38 @@ class Interpreter:
     proc run_program(self, program):
         self.build_label_table(program)
         let ip = 0
-        while ip < len(self.stmts):
+        while true:
+            if ip >= len(self.stmts):
+                let frame = self.process.pop_call()
+                if frame != nil:
+                    ip = frame["ip"] + 1
+                    self.ctx.args = frame["args"]
+                    continue
+                else:
+                    break
             let stmt = self.stmts[ip]
             let ret = self.exec_node(stmt)
             if type(ret) == "dict" and dict_has(ret, "__signal"):
                 if ret["__signal"] == "GOTO":
                     let target = ret["target"]
+                    if target == "EOF" or target == ":EOF":
+                        ip = len(self.stmts)
+                        continue
                     if dict_has(self.labels, target):
                         ip = self.labels[target] + 1
                         continue
                     else:
                         print "GOTO: Label not found: " + target
+                        return 1
+                elif ret["__signal"] == "CALL":
+                    let target = ret["target"]
+                    if dict_has(self.labels, target):
+                        self.process.push_call("", self.ctx.args, ip)
+                        self.ctx.args = ret["args"]
+                        ip = self.labels[target] + 1
+                        continue
+                    else:
+                        print "CALL: Label not found: " + target
                         return 1
                 elif ret["__signal"] == "EXIT":
                     return ret["code"]

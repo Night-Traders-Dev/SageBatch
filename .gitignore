@@ -1,3 +1,16 @@
 build/
 docs/node_modules/
 docs/dist/
+test_args
+test_chr
+test_dict
+test_exists
+test_getenv
+test_loop_catch
+test_sys_exec
+test_type
+test_type_node
+test_io.c
+*.sgvm
+-o
+loop_log.txt

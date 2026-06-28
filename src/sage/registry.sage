@@ -3,56 +3,55 @@
 # them as external (to be found on PATH).
 # Phase 5: Internal command dispatch table.
 
-from commands import InternalCommands
+from commands import cmd_echo, cmd_rem, cmd_set, cmd_pause, cmd_cls, cmd_exit, cmd_cd, cmd_md, cmd_rd, cmd_dir, cmd_type, cmd_copy, cmd_move, cmd_del, cmd_ren, cmd_shift, cmd_ver, cmd_help, cmd_title, cmd_color, cmd_prompt, cmd_date, cmd_time, cmd_vol, cmd_verify, cmd_pushd, cmd_popd
 import sys
 
 class CommandRegistry:
     proc init(self, ctx):
-        self.ctx       = ctx
-        self.ic        = InternalCommands(ctx)
+        self.ctx = ctx
+        self.handlers = {}
+        self.handlers["ECHO"] = cmd_echo
+        self.handlers["REM"] = cmd_rem
+        self.handlers["SET"] = cmd_set
+        self.handlers["PAUSE"] = cmd_pause
+        self.handlers["CLS"] = cmd_cls
+        self.handlers["EXIT"] = cmd_exit
+        self.handlers["CD"] = cmd_cd
+        self.handlers["CHDIR"] = cmd_cd
+        self.handlers["MD"] = cmd_md
+        self.handlers["MKDIR"] = cmd_md
+        self.handlers["RD"] = cmd_rd
+        self.handlers["RMDIR"] = cmd_rd
+        self.handlers["DIR"] = cmd_dir
+        self.handlers["TYPE"] = cmd_type
+        self.handlers["COPY"] = cmd_copy
+        self.handlers["MOVE"] = cmd_move
+        self.handlers["DEL"] = cmd_del
+        self.handlers["ERASE"] = cmd_del
+        self.handlers["REN"] = cmd_ren
+        self.handlers["RENAME"] = cmd_ren
+        self.handlers["SHIFT"] = cmd_shift
+        self.handlers["VER"] = cmd_ver
+        self.handlers["HELP"] = cmd_help
+        self.handlers["TITLE"] = cmd_title
+        self.handlers["COLOR"] = cmd_color
+        self.handlers["PROMPT"] = cmd_prompt
+        self.handlers["DATE"] = cmd_date
+        self.handlers["TIME"] = cmd_time
+        self.handlers["VOL"] = cmd_vol
+        self.handlers["VERIFY"] = cmd_verify
+        self.handlers["PUSHD"] = cmd_pushd
+        self.handlers["POPD"] = cmd_popd
 
     proc is_internal(self, name):
         let key = upper(name)
-        if key == "ECHO" or key == "REM" or key == "SET" or key == "PAUSE" or key == "CLS": return true
-        if key == "EXIT" or key == "CD" or key == "MD" or key == "RD" or key == "DIR": return true
-        if key == "TYPE" or key == "COPY" or key == "MOVE" or key == "DEL" or key == "ERASE": return true
-        if key == "REN" or key == "RENAME" or key == "SHIFT" or key == "VER" or key == "HELP": return true
-        if key == "TITLE" or key == "COLOR" or key == "PROMPT": return true
-        if key == "DATE" or key == "TIME" or key == "VOL" or key == "VERIFY": return true
-        if key == "PUSHD" or key == "POPD": return true
-        return false
+        return dict_has(self.handlers, key)
 
     proc dispatch(self, name, args):
         let key = upper(name)
-        if key == "ECHO": return self.ic.cmd_echo(args)
-        if key == "REM": return self.ic.cmd_rem(args)
-        if key == "SET": return self.ic.cmd_set(args)
-        if key == "PAUSE": return self.ic.cmd_pause(args)
-        if key == "CLS": return self.ic.cmd_cls(args)
-        if key == "EXIT": return self.ic.cmd_exit(args)
-        if key == "CD": return self.ic.cmd_cd(args)
-        if key == "MD": return self.ic.cmd_md(args)
-        if key == "RD": return self.ic.cmd_rd(args)
-        if key == "DIR": return self.ic.cmd_dir(args)
-        if key == "TYPE": return self.ic.cmd_type(args)
-        if key == "COPY": return self.ic.cmd_copy(args)
-        if key == "MOVE": return self.ic.cmd_move(args)
-        if key == "DEL": return self.ic.cmd_del(args)
-        if key == "ERASE": return self.ic.cmd_del(args)
-        if key == "REN": return self.ic.cmd_ren(args)
-        if key == "RENAME": return self.ic.cmd_ren(args)
-        if key == "SHIFT": return self.ic.cmd_shift(args)
-        if key == "VER": return self.ic.cmd_ver(args)
-        if key == "HELP": return self.ic.cmd_help(args)
-        if key == "TITLE": return self.ic.cmd_title(args)
-        if key == "COLOR": return self.ic.cmd_color(args)
-        if key == "PROMPT": return self.ic.cmd_prompt(args)
-        if key == "DATE": return self.ic.cmd_date(args)
-        if key == "TIME": return self.ic.cmd_time(args)
-        if key == "VOL": return self.ic.cmd_vol(args)
-        if key == "VERIFY": return self.ic.cmd_verify(args)
-        if key == "PUSHD": return self.ic.cmd_pushd(args)
-        if key == "POPD": return self.ic.cmd_popd(args)
+        if dict_has(self.handlers, key):
+            let handler = self.handlers[key]
+            return handler(self.ctx, args)
 
         # External execution
         let cmd = name
