@@ -3,7 +3,7 @@
 # them as external (to be found on PATH).
 # Phase 5: Internal command dispatch table.
 
-from commands import cmd_echo, cmd_rem, cmd_set, cmd_pause, cmd_cls, cmd_exit, cmd_cd, cmd_md, cmd_rd, cmd_dir, cmd_type, cmd_copy, cmd_move, cmd_del, cmd_ren, cmd_shift, cmd_ver, cmd_help, cmd_title, cmd_color, cmd_prompt, cmd_date, cmd_time, cmd_vol, cmd_verify, cmd_pushd, cmd_popd
+from commands import cmd_echo, cmd_rem, cmd_set, cmd_pause, cmd_cls, cmd_exit, cmd_cd, cmd_md, cmd_rd, cmd_dir, cmd_type, cmd_copy, cmd_move, cmd_del, cmd_ren, cmd_shift, cmd_ver, cmd_help, cmd_title, cmd_color, cmd_prompt, cmd_date, cmd_time, cmd_vol, cmd_verify, cmd_pushd, cmd_popd, cmd_path, cmd_break, cmd_chcp
 import sys
 
 class CommandRegistry:
@@ -42,6 +42,9 @@ class CommandRegistry:
         self.handlers["VERIFY"] = cmd_verify
         self.handlers["PUSHD"] = cmd_pushd
         self.handlers["POPD"] = cmd_popd
+        self.handlers["PATH"] = cmd_path
+        self.handlers["BREAK"] = cmd_break
+        self.handlers["CHCP"] = cmd_chcp
 
     proc is_internal(self, name):
         let key = upper(name)

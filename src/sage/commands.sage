@@ -313,4 +313,36 @@ proc cmd_help(ctx, args):
     print "SageBatch internal commands:"
     print "  ECHO SET REM PAUSE CLS EXIT CD MD RD DIR TYPE COPY MOVE DEL REN SHIFT VER"
     print "  IF FOR GOTO CALL TITLE COLOR PROMPT DATE TIME VOL VERIFY PUSHD POPD"
+    print "  PATH BREAK CHCP"
+    return 0
+
+# ------------------------------------------------------------------ PATH / BREAK / CHCP
+
+proc cmd_path(ctx, args):
+    if len(args) == 0:
+        let p = ctx.env.vars["PATH"]
+        if p == nil or p == "":
+            print "PATH=(null)"
+        else:
+            print "PATH=" + p
+        return 0
+    let val = args[0]
+    if val == ";":
+        ctx.env.vars["PATH"] = ""
+    else:
+        ctx.env.vars["PATH"] = val
+    return 0
+
+proc cmd_break(ctx, args):
+    if len(args) > 0:
+        let st = upper(args[0])
+        if st == "ON" or st == "OFF":
+            return 0
+    print "BREAK is off"
+    return 0
+
+proc cmd_chcp(ctx, args):
+    if len(args) > 0:
+        return 0
+    print "Active code page: 437"
     return 0
