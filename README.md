@@ -512,6 +512,20 @@ Detailed breakdown is available in `benchmarks/benchmark.md`.
 
 ---
 
+## SageDOS Integration
+
+SageBatch serves as the default `COMMAND.COM` shell for [SageDOS](https://github.com/Night-Traders-Dev/SageDOS), a lightweight DOS-compatible operating system built entirely in SageLang.
+
+In SageDOS, SageBatch provides the core interactive shell environment, handling:
+- **Boot Scripts:** Execution of `AUTOEXEC.BAT` equivalent initialization scripts.
+- **System Environment:** Global variable and `PATH` management.
+- **Command Dispatch:** Processing built-in and external shell commands.
+- **Drive Emulation:** Establishing the default `C:\` root namespace.
+
+By compiling SageBatch directly into the SageDOS kernel, the OS achieves near-instant boot times and high-performance script execution without the overhead of legacy VM bytecodes.
+
+---
+
 ## Examples
 
 ```
