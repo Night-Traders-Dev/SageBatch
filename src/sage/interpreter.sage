@@ -103,8 +103,9 @@ class Interpreter:
         if ntype == "Assignment":
             let name = node.name
             let is_arith = false
-            if startswith(name, "/A "):
-                name = strip(slice(name, 3, len(name)))
+            if len(name) > 2 and slice(name, 0, 2) == "/A":
+                let name_tmp = slice(name, 3, len(name))
+                name = strip(name_tmp)
                 is_arith = true
             
             let c = self.ctx
@@ -123,8 +124,10 @@ class Interpreter:
                         break
                     i = i + 1
                 if op_idx != -1:
-                    let left = strip(slice(val, 0, op_idx))
-                    let right = strip(slice(val, op_idx + 1, len(val)))
+                    let left_tmp = slice(val, 0, op_idx)
+                    let right_tmp = slice(val, op_idx + 1, len(val))
+                    let left = strip(left_tmp)
+                    let right = strip(right_tmp)
                     
                     let left_val = v.get(left)
                     if left_val != "" and left_val != nil: left = left_val
@@ -134,7 +137,6 @@ class Interpreter:
                     let left_num = tonumber(left)
                     let right_num = tonumber(right)
                     if left_num == nil or right_num == nil:
-                        print "CRASH_BUG: left='" + str(left) + "' right='" + str(right) + "'"
                         val = "0"
                     else:
                         if op_char == "+": val = str(left_num + right_num)

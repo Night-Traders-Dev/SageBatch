@@ -18,6 +18,26 @@ run_benchmarks() {
     echo "AOT Mode:" >> benchmarks/benchmark.md
     { time ./build/sagebatch benchmarks/fib.bat ; } 2>> benchmarks/benchmark.md
     echo "\`\`\`" >> benchmarks/benchmark.md
+
+    echo "" >> benchmarks/benchmark.md
+
+    echo "## Math Benchmark (Factorial 100)" >> benchmarks/benchmark.md
+    echo "\`\`\`" >> benchmarks/benchmark.md
+    echo "Interpreter Mode:" >> benchmarks/benchmark.md
+    { time sage src/sage/batch.sage benchmarks/math.bat ; } 2>> benchmarks/benchmark.md
+    echo "AOT Mode:" >> benchmarks/benchmark.md
+    { time ./build/sagebatch benchmarks/math.bat ; } 2>> benchmarks/benchmark.md
+    echo "\`\`\`" >> benchmarks/benchmark.md
+
+    echo "" >> benchmarks/benchmark.md
+
+    echo "## Nested Loops Benchmark (50x50)" >> benchmarks/benchmark.md
+    echo "\`\`\`" >> benchmarks/benchmark.md
+    echo "Interpreter Mode:" >> benchmarks/benchmark.md
+    { time sage src/sage/batch.sage benchmarks/nested_loop.bat ; } 2>> benchmarks/benchmark.md
+    echo "AOT Mode:" >> benchmarks/benchmark.md
+    { time ./build/sagebatch benchmarks/nested_loop.bat ; } 2>> benchmarks/benchmark.md
+    echo "\`\`\`" >> benchmarks/benchmark.md
 }
 
 echo "# SageBatch Benchmarks" > benchmarks/benchmark.md

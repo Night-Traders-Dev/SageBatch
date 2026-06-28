@@ -4,7 +4,6 @@
 # Phase 5: Internal command dispatch table.
 
 from commands import cmd_echo, cmd_rem, cmd_set, cmd_pause, cmd_cls, cmd_exit, cmd_cd, cmd_md, cmd_rd, cmd_dir, cmd_type, cmd_copy, cmd_move, cmd_del, cmd_ren, cmd_shift, cmd_ver, cmd_help, cmd_title, cmd_color, cmd_prompt, cmd_date, cmd_time, cmd_vol, cmd_verify, cmd_pushd, cmd_popd, cmd_path, cmd_break, cmd_chcp
-import sys
 
 class CommandRegistry:
     proc init(self, ctx):
@@ -52,12 +51,44 @@ class CommandRegistry:
 
     proc dispatch(self, name, args):
         let key = upper(name)
-        if dict_has(self.handlers, key):
-            let handler = self.handlers[key]
-            return handler(self.ctx, args)
+        if key == "ECHO": return cmd_echo(self.ctx, args)
+        if key == "REM": return cmd_rem(self.ctx, args)
+        if key == "SET": return cmd_set(self.ctx, args)
+        if key == "PAUSE": return cmd_pause(self.ctx, args)
+        if key == "CLS": return cmd_cls(self.ctx, args)
+        if key == "EXIT": return cmd_exit(self.ctx, args)
+        if key == "CD": return cmd_cd(self.ctx, args)
+        if key == "CHDIR": return cmd_cd(self.ctx, args)
+        if key == "MD": return cmd_md(self.ctx, args)
+        if key == "MKDIR": return cmd_md(self.ctx, args)
+        if key == "RD": return cmd_rd(self.ctx, args)
+        if key == "RMDIR": return cmd_rd(self.ctx, args)
+        if key == "DIR": return cmd_dir(self.ctx, args)
+        if key == "TYPE": return cmd_type(self.ctx, args)
+        if key == "COPY": return cmd_copy(self.ctx, args)
+        if key == "MOVE": return cmd_move(self.ctx, args)
+        if key == "DEL": return cmd_del(self.ctx, args)
+        if key == "ERASE": return cmd_del(self.ctx, args)
+        if key == "REN": return cmd_ren(self.ctx, args)
+        if key == "RENAME": return cmd_ren(self.ctx, args)
+        if key == "SHIFT": return cmd_shift(self.ctx, args)
+        if key == "VER": return cmd_ver(self.ctx, args)
+        if key == "HELP": return cmd_help(self.ctx, args)
+        if key == "TITLE": return cmd_title(self.ctx, args)
+        if key == "COLOR": return cmd_color(self.ctx, args)
+        if key == "PROMPT": return cmd_prompt(self.ctx, args)
+        if key == "DATE": return cmd_date(self.ctx, args)
+        if key == "TIME": return cmd_time(self.ctx, args)
+        if key == "VOL": return cmd_vol(self.ctx, args)
+        if key == "VERIFY": return cmd_verify(self.ctx, args)
+        if key == "PUSHD": return cmd_pushd(self.ctx, args)
+        if key == "POPD": return cmd_popd(self.ctx, args)
+        if key == "PATH": return cmd_path(self.ctx, args)
+        if key == "BREAK": return cmd_break(self.ctx, args)
+        if key == "CHCP": return cmd_chcp(self.ctx, args)
 
         # External execution
         let cmd = name
         if len(args) > 0:
             cmd = cmd + " " + join(args, " ")
-        return sys.exec(cmd)
+        return sys_exec(cmd)
